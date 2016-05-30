@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>wix-oss-ci-police-aggregator</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Wix OSS CI Police - Aggregator</name>
+    <description>
+        The aggregator of the 'CI Police' Maven plugin, whose responsibility is to validate Wix Open Source Projects.
+        These validations includes:
+        *   Maven POM requirements (e.g., non-blank 'artifactId')
+        *   Sonatype requiremetns (e.g., 'scm')
+        *   Wix requirements (e.g., 'organization' populated with Wix details)
+
+        It is consisted two modules: one, is the main module of the plugin, and the other, is a tests module.
+        The reason for having a tests module is that the tests actually runs the plugin. It is therefore expected to
+        be found in Maven's local repository (at least in the local repository); hence, the separation.
+    </description>
+    <url>https://github.com/wix/wix-oss-ci-police</url>
+
+    <parent>
+        <groupId>com.wix</groupId>
+        <artifactId>wix-oss-parent</artifactId>
+        <version>1.4.0</version>
+        <relativePath />
+    </parent>
+
+    <developers>
+        <developer>
+            <name>Raz, Ohad</name>
+            <email>ohadr@wix.com</email>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>wix.com</name>
+        <url>http://wix.io</url>
+    </organization>
+
+    <scm>
+        <url>https://github.com/wix/wix-oss-ci-police</url>
+        <connection>scm:git:git://github.com/wix/wix-oss-ci-police.git</connection>
+        <developerConnection>scm:git:git@github.com:wix/wix-oss-ci-police.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <url>https://github.com/wix/wix-oss-ci-police/issues</url>
+        <system>GitHub Issues</system>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <modules>
+        <module>wix-oss-ci-police</module>
+        <module>wix-oss-ci-police-tests-module</module>
+    </modules>
+</project>
+

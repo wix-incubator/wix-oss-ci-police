@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>wix-oss-ci-police-tests-module</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Wix OSS CI Police - Tests Module</name>
+    <description>
+        This is a separate module from the main one, as this includes tests of the plugin itself; when executed, the
+        plugin itself is expected to be stored in Maven's local repository (at least), so that it could be found.
+    </description>
+    <url>https://github.com/wix/wix-oss-ci-police</url>
+
+    <parent>
+        <groupId>com.wix</groupId>
+        <artifactId>wix-oss-parent</artifactId>
+        <version>1.4.0</version>
+        <relativePath />
+    </parent>
+
+    <developers>
+        <developer>
+            <name>Raz, Ohad</name>
+            <email>ohadr@wix.com</email>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>wix.com</name>
+        <url>http://wix.io</url>
+    </organization>
+
+    <scm>
+        <url>https://github.com/wix/wix-oss-ci-police</url>
+        <connection>scm:git:git://github.com/wix/wix-oss-ci-police.git</connection>
+        <developerConnection>scm:git:git@github.com:wix/wix-oss-ci-police.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <url>https://github.com/wix/wix-oss-ci-police/issues</url>
+        <system>GitHub Issues</system>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+
+    <dependencies>
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>com.wix</groupId>
+            <artifactId>wix-oss-ci-police</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-embedder</artifactId>
+            <version>3.3.9</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.6.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.4</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
