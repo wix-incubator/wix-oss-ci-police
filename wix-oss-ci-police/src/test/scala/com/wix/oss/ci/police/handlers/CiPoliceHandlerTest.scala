@@ -113,7 +113,7 @@ class CiPoliceHandlerTest extends SpecWithJUnit {
         skip = false)
 
       ciPoliceHandler.execute() must failWithErrors(
-        s"^Validation error: effective groupId \\[MavenProject: ${regexEscape(invalidGroupId)}:$someArtifactId:${regexEscape(someVersion)} @ \\] \\(does not have to be specified if inherited from parent, but if specified, must be either 'com\\.wix' or start with 'com\\.wix\\.'\\)$$",
+        s"^Validation error: groupId \\[${regexEscape(invalidGroupId)}\\] \\(must be specified, and either be 'com\\.wix', or start with 'com\\.wix\\.'\\)$$",
         s"^Validation error: url \\[${regexEscape(invalidUrl)}\\] \\(must be of format https://github\\.com/wix/\\{project\\}\\)$$")
     }
   }

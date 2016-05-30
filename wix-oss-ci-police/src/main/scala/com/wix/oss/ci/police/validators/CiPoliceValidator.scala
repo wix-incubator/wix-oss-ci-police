@@ -30,7 +30,7 @@ import com.wix.oss.ci.police.validators.VersionValidator.haveValidVersion
   */
 object CiPoliceValidator {
   implicit val mavenProjectValidator = validator[MavenProject] { mvnProj =>
-    mvnProj as "effective groupId" should haveValidGroupId
+    mvnProj.getGroupId as "groupId" should haveValidGroupId
     mvnProj.getArtifactId as "artifactId" is notBlank
     mvnProj as "effective version" should haveValidVersion
     mvnProj.getUrl as "url" is validUrl()

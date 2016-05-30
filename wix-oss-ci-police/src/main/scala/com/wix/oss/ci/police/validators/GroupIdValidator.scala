@@ -7,21 +7,19 @@
 package com.wix.oss.ci.police.validators
 
 
-import org.apache.maven.project.MavenProject
 import com.wix.accord.NullSafeValidator
 import com.wix.accord.ViolationBuilder._
-import GroupIdValidator.effectiveGroupId
 
 
-/** A validator for Maven Project's `groupId`, to validate its format (`com.wix` or `com.wix.''XXX''`)
-  * It validates the ''effective'' group ID, i.e., the one from the project itself, and if not specified, the group ID
-  * of the `parent`.
+/** A validator for Maven Project's `groupId`, to validate its format (`com.wix` or `com.wix.''XXX''`).
+  * As opposed to Maven requirement that groupId should be set only if different from the `parent`'s, Lifecycle
+  * requires that a `groupId` must be set on each module.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class GroupIdValidator extends NullSafeValidator[MavenProject] (
-  mvnProj => effectiveGroupId(mvnProj).exists(_.matches("""(^com\.wix$)|(^com\.wix\..+$)""")),
-  _ -> "does not have to be specified if inherited from parent, but if specified, must be either 'com.wix' or start with 'com.wix.'"
+class GroupIdValidator extends NullSafeValidator[String] (
+  groupId => groupId.matches("""(^com\.wix$)|(^com\.wix\..+$)"""),
+  _ -> "must be specified, and either be 'com.wix', or start with 'com.wix.'"
 )
 
 
@@ -31,11 +29,4 @@ class GroupIdValidator extends NullSafeValidator[MavenProject] (
   */
 object GroupIdValidator {
   def haveValidGroupId = new GroupIdValidator
-
-  val effectiveGroupId: MavenProject => Option[String] = mvnProj => {
-    (Option(mvnProj.getGroupId), Option(mvnProj.getParent).map(_.getGroupId)) match {
-      case (None, Some(id)) => Some(id)
-      case (idOpt, _)       => idOpt
-    }
-  }
 }

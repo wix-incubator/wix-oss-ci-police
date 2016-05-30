@@ -41,41 +41,15 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(pom) must succeed
     }
 
-    "be accepted if missing, but a 'parent' is specified whose 'groupId' of 'com.wix'" in {
-      val pom = mavenProject(
-        groupId = None,
-        parent = Some(mavenParent(groupId = Some("com.wix"))))
-
-      validate(pom) must succeed
-    }
-
-    "be accepted if missing, but a 'parent' is specified, whose 'groupId' that starts with 'com.wix.'" in {
-      val pom = mavenProject(
-        groupId = None,
-        parent = Some(mavenParent(groupId = Some("com.wix.parent"))))
-
-      validate(pom) must succeed
-    }
-
     "be rejected, if does not start with 'com.wix.' and not equal to 'com.wix'" in {
+      val invalidGroupId = "kuki.buki"
       val pom = mavenProject(
-        groupId = Some("kuki.buki"))
+        groupId = Some(invalidGroupId))
 
       validate(pom) must failWith(RuleViolationMatcher(
-        value = pom,
-        constraint = "does not have to be specified if inherited from parent, but if specified, must be either 'com.wix' or start with 'com.wix.'",
-        description = "effective groupId"))
-    }
-
-    "be rejected if missing, and a 'parent' is specified whose 'groupId' does not start with 'com.wix.' and is not equal to 'com.wix'" in {
-      val pom = mavenProject(
-        groupId = None,
-        parent = Some(mavenParent(groupId = Some("com.kuki.buki"))))
-
-      validate(pom) must failWith(RuleViolationMatcher(
-        value = pom,
-        constraint = "does not have to be specified if inherited from parent, but if specified, must be either 'com.wix' or start with 'com.wix.'",
-        description = "effective groupId"))
+        value = invalidGroupId,
+        constraint = "must be specified, and either be 'com.wix', or start with 'com.wix.'",
+        description = "groupId"))
     }
 
     "be rejected if missing, and no 'groupId' is specified in the 'parent'" in {
@@ -84,9 +58,9 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         parent = Some(mavenParent(groupId = None)))
 
       validate(pom) must failWith(RuleViolationMatcher(
-        value = pom,
-        constraint = "does not have to be specified if inherited from parent, but if specified, must be either 'com.wix' or start with 'com.wix.'",
-        description = "effective groupId"))
+        value = null,
+        constraint = "is a null",
+        description = "groupId"))
     }
   }
 
