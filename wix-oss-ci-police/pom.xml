@@ -11,7 +11,7 @@
         A Maven plugin whose responsibility is to validate Wix Open Source Project.
         These validations includes:
         *   Maven POM requirements (e.g., non-blank 'artifactId')
-        *   Sonatype requiremetns (e.g., 'scm')
+        *   Sonatype requirements (e.g., 'scm')
         *   Wix requirements (e.g., 'organization' populated with Wix details)
     </description>
     <url>https://github.com/wix/wix-oss-ci-police</url>
