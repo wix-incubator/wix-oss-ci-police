@@ -19,9 +19,14 @@ import VersionValidator.effectiveVersion
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class VersionValidator extends NullSafeValidator[MavenProject] (
-  mvnProj => effectiveVersion(mvnProj).exists(_.matches("""^\d+\.\d+\.\d+-SNAPSHOT$""")),
-  _ -> "must be of the form X.X.X-SNAPSHOT"
+class VersionValidator(isRelease: Boolean) extends NullSafeValidator[MavenProject] (
+  mvnProject => effectiveVersion(mvnProject).exists(_.matches(
+    if (isRelease) {
+      """^\d+\.\d+\.\d+$"""
+    } else {
+      """^\d+\.\d+\.\d+-SNAPSHOT$"""
+    })),
+  _ -> s"must be of the form X.X.X${if (!isRelease) "-SNAPSHOT" else ""} for ${if (!isRelease) "non-" else ""}release execution"
 )
 
 
@@ -30,11 +35,10 @@ class VersionValidator extends NullSafeValidator[MavenProject] (
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
 object VersionValidator {
-  def haveValidVersion = new VersionValidator
+  def haveValidVersion(isRelease: Boolean) = new VersionValidator(isRelease)
 
-  val effectiveVersion: MavenProject => Option[String] = mvnProj => {
-    mvnProj.getParentArtifact
-    (Option(mvnProj.getVersion), Option(mvnProj.getParent).map(_.getVersion)) match {
+  val effectiveVersion: MavenProject => Option[String] = mvnProject => {
+    (Option(mvnProject.getVersion), Option(mvnProject.getParent).map(_.getVersion)) match {
       case (None, Some(version))  => Some(version)
       case (verOpt, _)            => verOpt
     }

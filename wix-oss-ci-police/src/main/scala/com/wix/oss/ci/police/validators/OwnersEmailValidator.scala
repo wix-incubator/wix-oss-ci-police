@@ -15,7 +15,7 @@ import com.wix.accord.ViolationBuilder._
 
 
 /** A validator for Maven Project's `developers`, to validate that owner is specified (at least one), and that
-  * onwers' email address is at Wix domain.
+  * owners' email address is at Wix domain.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */

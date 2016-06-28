@@ -9,10 +9,11 @@ package com.wix.oss.ci.police.handlers
 
 import scala.runtime.BoxedUnit
 import java.util.{Collection => JCollection}
-import javax.xml.bind.ValidationException
+import org.apache.maven.plugin.MojoFailureException
 import org.apache.maven.plugin.logging.Log
 import org.apache.maven.project.MavenProject
 import com.wix.accord.{Failure, Success, _}
+import com.wix.oss.ci.police.CiPoliceViolationException
 import com.wix.oss.ci.police.validators.CiPoliceValidator.mavenProjectValidator
 
 
@@ -20,13 +21,16 @@ import com.wix.oss.ci.police.validators.CiPoliceValidator.mavenProjectValidator
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class CiPoliceHandler(project: MavenProject, log: Log, skip: Boolean) {
+class CiPoliceHandler(mavenProject: MavenProject, isRelease: Boolean, log: Log, skip: Boolean) {
 
+  @throws[MojoFailureException]
   def execute(): Unit = {
     if (skip) {
       log.info(s"skip=[$skip]. Doing nothing.")
     } else {
-      validate(project) match {
+      log.info(s"Identified ${if (isRelease) {"release"} else "development (RC)"} execution")
+
+      validate(mavenProject -> isRelease) match {
         case Success =>
           log.info("POM validation passed")
 
@@ -37,12 +41,17 @@ class CiPoliceHandler(project: MavenProject, log: Log, skip: Boolean) {
               case e => s"[$e] (${v.constraint})"
             }}")
 
-          throw new ValidationException(violations mkString ", ")
+          throw CiPoliceViolationException(violations)
       }
     }
   }
 }
 
+
+/** An Extractor Object, used for indicating if a value is missing.
+  *
+  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
+  */
 object Missing {
   def unapply(v: Any): Boolean = {
     v == null ||

@@ -10,11 +10,12 @@ package com.wix.oss.ci.police.handlers
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import java.io.{ByteArrayOutputStream, PrintStream}
-import javax.xml.bind.ValidationException
 import org.apache.maven.plugin.logging.Log
+import org.apache.maven.project.MavenProject
 import org.specs2.matcher.{Expectable, Matcher}
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
+import com.wix.oss.ci.police.CiPoliceViolationException
 import com.wix.oss.ci.police.test.MavenElementsBuilder._
 
 
@@ -41,13 +42,24 @@ class CiPoliceHandlerTest extends SpecWithJUnit {
       errorBuffer = errorBuffer)
 
 
+    def ciPoliceHandler(project: MavenProject = mavenProject(),
+                        isRelease: Boolean = false,
+                        log: Log = log,
+                        skip: Boolean = false): CiPoliceHandler = {
+      new CiPoliceHandler(
+        mavenProject = project,
+        isRelease = isRelease,
+        log = log,
+        skip = skip)
+    }
+
     def succeedWithInfoRecords(records: String*): Matcher[Unit] = {
       not(throwA[Throwable]) and
         haveInfoRecords(records: _*) ^^ { (_: Unit) => log }
     }
 
     def failWithErrors(records: String*): Matcher[Unit] = {
-      throwA[ValidationException] and
+      throwA[CiPoliceViolationException] and
         haveErrorRecords(records: _*) ^^ { (_: Unit) => log }
     }
 
@@ -81,21 +93,11 @@ class CiPoliceHandlerTest extends SpecWithJUnit {
 
   "execute" should {
     "do nothing (except for logging), if the 'skip' flag is on" in new Ctx {
-      val ciPoliceHandler = new CiPoliceHandler(
-        project = mavenProject(),
-        log = log,
-        skip = true)
-
-      ciPoliceHandler.execute() must succeedWithInfoRecords("""^skip=\[true\]\. Doing nothing\.$""")
+      ciPoliceHandler(skip = true).execute() must succeedWithInfoRecords("""^skip=\[true\]\. Doing nothing\.$""")
     }
 
     "log a success record, if successfully validated POM" in new Ctx {
-      val ciPoliceHandler = new CiPoliceHandler(
-        project = mavenProject(),
-        log = log,
-        skip = false)
-
-      ciPoliceHandler.execute() must succeedWithInfoRecords("^POM validation passed$")
+      ciPoliceHandler().execute() must succeedWithInfoRecords("^POM validation passed$")
     }
 
     "log an error record, if POM validation failed" in new Ctx {
@@ -103,16 +105,14 @@ class CiPoliceHandlerTest extends SpecWithJUnit {
       val someArtifactId = "wix-some-project"
       val someVersion = "3.33.333-SNAPSHOT"
       val invalidUrl = "https://some.invalid.url"
-      val ciPoliceHandler = new CiPoliceHandler(
+      val handler = ciPoliceHandler(
         project = mavenProject(
           groupId = Some(invalidGroupId),
           artifactId = Some(someArtifactId),
           version = Some(someVersion),
-          url = Some(invalidUrl)),
-        log = log,
-        skip = false)
+          url = Some(invalidUrl)))
 
-      ciPoliceHandler.execute() must failWithErrors(
+      handler.execute() must failWithErrors(
         s"^Validation error: groupId \\[${regexEscape(invalidGroupId)}\\] \\(must be specified, and either be 'com\\.wix', or start with 'com\\.wix\\.'\\)$$",
         s"^Validation error: url \\[${regexEscape(invalidUrl)}\\] \\(must be of format https://github\\.com/wix/\\{project\\}\\)$$")
     }

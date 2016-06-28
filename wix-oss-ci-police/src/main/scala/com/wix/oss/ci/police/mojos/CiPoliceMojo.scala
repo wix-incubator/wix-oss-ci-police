@@ -7,8 +7,8 @@
 package com.wix.oss.ci.police.mojos
 
 
-import org.apache.maven.plugin.AbstractMojo
-import org.apache.maven.plugins.annotations.{Mojo, Parameter}
+import org.apache.maven.plugin.{AbstractMojo, MojoExecutionException, MojoFailureException}
+import org.apache.maven.plugins.annotations.{LifecyclePhase, Mojo, Parameter}
 import org.apache.maven.project.MavenProject
 import com.wix.oss.ci.police.handlers.CiPoliceHandler
 
@@ -17,19 +17,27 @@ import com.wix.oss.ci.police.handlers.CiPoliceHandler
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-@Mojo(name = "wix-oss-ci-police")
+@Mojo(
+  name = "wix-oss-ci-police",
+  defaultPhase = LifecyclePhase.VALIDATE)
 class CiPoliceMojo extends AbstractMojo {
 
-  @Parameter(defaultValue = "${project}", readonly = true )
+  @Parameter(defaultValue = "${project}", readonly = true)
   var project: MavenProject = _
 
   @Parameter(property = "ci-police.skip", defaultValue = "false")
   var skip: Boolean = _
 
+  @Parameter(property = "isRelease", defaultValue = "false")
+  var isRelease: Boolean = _
 
+
+  @throws[MojoExecutionException]
+  @throws[MojoFailureException]
   override def execute(): Unit = {
     val handler = new CiPoliceHandler(
-      project = project,
+      mavenProject = project,
+      isRelease = isRelease,
       log = getLog,
       skip = skip)
 

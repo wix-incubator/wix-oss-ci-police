@@ -29,18 +29,20 @@ import com.wix.oss.ci.police.validators.VersionValidator.haveValidVersion
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
 object CiPoliceValidator {
-  implicit val mavenProjectValidator = validator[MavenProject] { mvnProj =>
-    mvnProj.getGroupId as "groupId" should haveValidGroupId
-    mvnProj.getArtifactId as "artifactId" is notBlank
-    mvnProj as "effective version" should haveValidVersion
-    mvnProj.getUrl as "url" is validUrl()
-    mvnProj.getModel.getName as "name" is notBlank
-    mvnProj.getDescription as "description" is notBlank
-    mvnProj.getOrganization as "organization" is validOrganization
-    mvnProj.getModel.getDevelopers as "developers" should haveValidWixDomainEmails
-    nullSafe(mvnProj.getScm as "scm" is validScm, "SCM")
-    nullSafe(mvnProj.getIssueManagement as "issueManagement" is validIssueManagement, "Issue Management")
-    mvnProj.getModel.getLicenses as "licenses" should haveValidLicense
+  implicit val mavenProjectValidator = validator[(MavenProject, Boolean)] { mvnProjIsReleaseTuple =>
+    mvnProjIsReleaseTuple._1.getGroupId as "groupId" should haveValidGroupId
+    mvnProjIsReleaseTuple._1.getArtifactId as "artifactId" is notBlank
+    mvnProjIsReleaseTuple._1 as "effective version" should haveValidVersion(mvnProjIsReleaseTuple._2)
+    mvnProjIsReleaseTuple._1.getUrl as "url" is validUrl()
+    mvnProjIsReleaseTuple._1.getModel.getName as "name" is notBlank
+    mvnProjIsReleaseTuple._1.getDescription as "description" is notBlank
+    mvnProjIsReleaseTuple._1.getOrganization as "organization" is validOrganization
+    mvnProjIsReleaseTuple._1.getModel.getDevelopers as "developers" should haveValidWixDomainEmails
+    nullSafe(mvnProjIsReleaseTuple._1.getScm as "scm" is validScm, "SCM")
+    nullSafe(
+      mvnProjIsReleaseTuple._1.getIssueManagement as "issueManagement" is validIssueManagement,
+      "Issue Management")
+    mvnProjIsReleaseTuple._1.getModel.getLicenses as "licenses" should haveValidLicense
   }
 
 

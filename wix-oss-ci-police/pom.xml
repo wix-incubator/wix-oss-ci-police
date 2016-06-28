@@ -137,4 +137,29 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>sign-artifacts</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-release-plugin</artifactId>
+                        <version>${maven.release.plugin.version}</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.apache.maven.scm</groupId>
+                                <artifactId>maven-scm-provider-gitexe</artifactId>
+                                <version>${maven.scm.provider.gitexe.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <!-- performing `install` to make sure it is installed before the ITs are executed
+                                 (ITs are counting the artifact is locally installed) -->
+                            <preparationGoals>clean install -DisRelease=true</preparationGoals>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
