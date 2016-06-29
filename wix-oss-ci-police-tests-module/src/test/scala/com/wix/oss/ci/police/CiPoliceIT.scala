@@ -9,20 +9,19 @@ package com.wix.oss.ci.police
 
 import scala.collection.JavaConversions._
 import scala.io.Source
-import scala.xml.{Elem, XML}
+import scala.xml.{Elem, Node, NodeSeq, XML}
+import scala.xml.transform.{RewriteRule, RuleTransformer}
 import java.io._
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileVisitResult, Files, Path, SimpleFileVisitor}
-import java.util.Properties
-import org.apache.maven.Maven
-import org.apache.maven.execution._
-import org.codehaus.plexus.{DefaultContainerConfiguration, DefaultPlexusContainer, PlexusConstants}
+import java.nio.file._
 import org.specs2.matcher.Matcher
 import org.specs2.matcher.Matchers._
 import org.specs2.mutable.{BeforeAfter, SpecWithJUnit}
-import org.specs2.specification.Scope
+import org.specs2.specification.{BeforeAfterAll, Scope}
 import com.wix.oss.ci.police.maven.execution.listener.ITLoggingExecutionEventListener
 import com.wix.oss.ci.police.mojos.CiPoliceMojo
+import com.wix.oss.ci.police.test.FilesSupport._
+import com.wix.oss.ci.police.test.MavenResult
+import com.wix.oss.ci.police.test.MavenSupport._
 import CiPoliceIT.{buildFailureLogMessage, buildSuccessLogMessage}
 
 
@@ -31,9 +30,15 @@ import CiPoliceIT.{buildFailureLogMessage, buildSuccessLogMessage}
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class CiPoliceIT extends SpecWithJUnit {
+class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
   val invalidUrl = "https://github.com/wixxiw/some-test-project"
+  val tmpReleaseVersionProjectDir = Files.createTempDirectory("generated_ci_police_directory_")
+
+
+  override def beforeAll: Unit = createReleaseLikeInstallation(tmpReleaseVersionProjectDir)
+
+  override def afterAll: Unit = deleteDirectory(tmpReleaseVersionProjectDir)
 
 
   def extractCiPoliceVersion(implicit isRelease: Boolean): String = {
@@ -56,20 +61,6 @@ class CiPoliceIT extends SpecWithJUnit {
     }
   }
 
-  def deleteProjectDirectory(projectDir: Path): Unit = {
-    Files.walkFileTree(projectDir, new SimpleFileVisitor[Path]() {
-      override def visitFile(file: Path, attributes: BasicFileAttributes): FileVisitResult = {
-        Files.delete(file)
-        FileVisitResult.CONTINUE
-      }
-
-      override def postVisitDirectory(dir: Path, exception: IOException): FileVisitResult = {
-        Files.delete(dir)
-        FileVisitResult.CONTINUE
-      }
-    })
-  }
-
   def simulateGitProjectDirectory(projectDir: Path): Unit = {
     val gitDir = Files.createDirectory(projectDir.resolve(".git"))
 
@@ -79,6 +70,50 @@ class CiPoliceIT extends SpecWithJUnit {
     Files.write(
       gitDir.resolve("HEAD"),
       "ref: refs/heads/master".getBytes("UTF-8"))
+  }
+
+  def createReleaseLikePom(inDirectory: Path,
+                           basedOn: Path): Unit = {
+    val origPom = XML.loadFile(basedOn.toFile)
+    val topLevelPom = XML.loadFile(basedOn.getParent.getParent.resolve("pom.xml").toFile)
+    val topLevelPomParentElement = topLevelPom \\ "parent"
+    val origVersionElement = (origPom \\ "project" \ "version").head
+    val replaceParentElement = new RewriteRule {
+      override def transform(node: Node): NodeSeq = {
+        node match {
+          case elem: Elem if elem.label == "parent" => topLevelPomParentElement
+          case elem                                 => elem
+        }
+      }
+    }
+    val replaceSnapshotVersion = new RewriteRule {
+      override def transform(node: Node): NodeSeq = {
+        node match {
+          case e if e == origVersionElement => <version>{e.text.stripSuffix("-SNAPSHOT")}</version>
+          case e                            => e
+        }
+      }
+    }
+    val releaseLikePomXML = new RuleTransformer(
+      replaceParentElement,
+      replaceSnapshotVersion).transform(origPom).head
+
+    XML.save(inDirectory.resolve("pom.xml").toString, releaseLikePomXML)
+  }
+
+  def createReleaseLikeInstallation(releaseVersionProjectDir: Path): Unit = {
+    val ciPoliceHomeDirectory =
+      new File(classOf[CiPoliceMojo].getProtectionDomain.getCodeSource.getLocation.getFile) // classes directory
+        .getParentFile // target directory
+        .getParentFile // ci-police module directory
+        .toPath
+
+    createReleaseLikePom(releaseVersionProjectDir, ciPoliceHomeDirectory.resolve("pom.xml"))
+    copyDirectory(
+      ciPoliceHomeDirectory.resolve("src").resolve("main"),
+      releaseVersionProjectDir.resolve("src").resolve("main"))
+
+    executeMaven(releaseVersionProjectDir.resolve("pom.xml"), "install")
   }
 
 
@@ -125,47 +160,18 @@ class CiPoliceIT extends SpecWithJUnit {
   trait Ctx extends Scope with BeforeAfter {
     val projectDir = Files.createTempDirectory("generated_pom_")
     val logFile = projectDir.resolve("log.log")
-    val plexusContainer = {
-      val containerConfig = new DefaultContainerConfiguration()
-        .setClassPathScanning(PlexusConstants.SCANNING_INDEX)
-        .setAutoWiring(true)
-        .setName("maven")
-      val container = new DefaultPlexusContainer(containerConfig)
-
-      container
-    }
 
     override def before: Unit = simulateGitProjectDirectory(projectDir)
 
-    override def after: Unit = deleteProjectDirectory(projectDir)
+    override def after: Unit = deleteDirectory(projectDir)
 
 
     def mavenExecution(pom: Elem, goals: String*)(implicit isRelease: Boolean): MavenResult = {
-      def buildMavenRequest(pomFile: File): MavenExecutionRequest = {
-        val userProperties = new Properties()
-        val executionRequestPopulator = plexusContainer.lookup(classOf[MavenExecutionRequestPopulator])
+      val pomFile = projectDir.resolve("pom.xml")
 
-        userProperties.setProperty("pushChanges", "false")
+      XML.save(pomFile.toString, pom)
 
-        val req = new DefaultMavenExecutionRequest()
-          .setPom(pomFile)
-          .setBaseDirectory(pomFile.getParentFile)
-          .setGoals(goals)
-          .setInteractiveMode(false)
-          .setExecutionListener(new ITLoggingExecutionEventListener(logFile))
-          .setUserProperties(userProperties)
-
-        executionRequestPopulator.populateDefaults(req)
-      }
-
-      val pomDir = projectDir.toFile
-      val pomFile = new File(pomDir, "pom.xml")
-      val maven = plexusContainer.lookup(classOf[Maven])
-      val mavenRequest = buildMavenRequest(pomFile)
-
-      XML.save(pomFile.getCanonicalPath, pom)
-
-      val result = maven.execute(mavenRequest)
+      val result = executeMaven(pomFile, Option(new ITLoggingExecutionEventListener(logFile)), goals: _*)
 
       MavenResult(exitCode = -result.getExceptions.length, log = readFile(logFile))
     }
@@ -515,34 +521,3 @@ object CiPoliceIT {
     "[INFO] BUILD FAILURE",
     "[INFO] ------------------------------------------------------------------------")
 }
-
-
-case class Goals(acutalMavenGoals: Seq[String])
-
-object Goals {
-  val `clean verify` = new Goals(Seq(
-    "clean",
-    "verify"))
-  val `release:clean release:prepare` = new Goals(Seq(
-//    "--batch-mode",
-//    "--offline",
-    "release:clean",
-    "release:prepare" //,
-    /*
-//    "-DremoteTagging=false",
-//    "-DsuppressCommitBeforeTag=true",
-    // "-DdryRun=true",
-    // "-DignoreSnapshots=true",
-//    "-Dtag=ci-police-test-333",
-*/
-
-//        "-DpushChanges=false",
-//    "-DdevelopmentVersion=33.33.33-SNAPSHOT",
-//    "-DreleaseVersion=3.3.3" //,
-    /*
-      "-DpreparationGoals=clean verify -DisRelease=true"*/))
-}
-
-case class MavenResult(exitCode: Int, log: Seq[String])
-
-
