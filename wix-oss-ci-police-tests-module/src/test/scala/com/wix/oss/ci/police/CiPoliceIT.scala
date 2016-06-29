@@ -193,6 +193,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <artifactId>wix-os-something</artifactId>
           <version>1.0.0-SNAPSHOT</version>
           <description>bla bla bla</description>
+          <packaging>pom</packaging>
           <name>some sexy name</name>
           <url>https://github.com/wix/some-test-project</url>
 
@@ -266,6 +267,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <groupId>com.wix</groupId>
           <artifactId>wix-os-something</artifactId>
           <version>1.0.0-SNAPSHOT</version>
+          <packaging>pom</packaging>
           <description>bla bla bla</description>
           <name>some sexy name</name>
           <url>{invalidUrl}</url>
@@ -342,6 +344,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <groupId>com.wix</groupId>
           <artifactId>wix-os-something</artifactId>
           <version>1.0.0-SNAPSHOT</version>
+          <packaging>pom</packaging>
           <description>bla bla bla</description>
           <name>some sexy name</name>
           <url>https://github.com/wix/some-test-project</url>
@@ -429,6 +432,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <groupId>com.wix</groupId>
           <artifactId>wix-os-something</artifactId>
           <version>1.0.0-SNAPSHOT</version>
+          <packaging>pom</packaging>
           <description>bla bla bla</description>
           <name>some sexy name</name>
           <url>{invalidUrl}</url>

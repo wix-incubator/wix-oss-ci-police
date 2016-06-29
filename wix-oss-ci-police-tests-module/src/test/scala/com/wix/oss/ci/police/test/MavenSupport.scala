@@ -54,7 +54,7 @@ trait MavenSupport {
       .setBaseDirectory(pomFile.getParent.toFile)
       .setGoals(goals)
       .setInteractiveMode(false)
-      .setOffline(true)
+//      .setOffline(true)
       .setExecutionListener(executionListener.getOrElse(new ExecutionEventLogger))
       .setUserProperties(userProperties)
 
