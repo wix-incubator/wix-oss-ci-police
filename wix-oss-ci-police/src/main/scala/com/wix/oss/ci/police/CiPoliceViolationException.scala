@@ -11,7 +11,7 @@ import org.apache.maven.plugin.MojoFailureException
 import com.wix.accord.Violation
 
 
-/** A [[MojoFailureException]] class, thrown by the CI Police plugin, to specify some violation(s) was/were
+/** A `MojoFailureException` class, thrown by the CI Police plugin, to specify some violation(s) was/were
   * encountered.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
