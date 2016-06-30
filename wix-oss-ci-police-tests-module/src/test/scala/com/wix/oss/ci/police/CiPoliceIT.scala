@@ -257,7 +257,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
       mavenExecution(pomXml, "clean", "verify") must completeSuccessfully
     }
 
-    "explodeWith Maven execution, if POM validation fails" in new Ctx {
+    "explode Maven execution while printing the errors encountered, if POM validation fails" in new Ctx {
       val pomXml =
         <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -422,7 +422,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
       mavenExecution(pomXml, "release:clean", "release:prepare") must completeSuccessfully
     }
 
-    "explode Maven execution, if POM validation fails" in new Ctx {
+    "explode Maven execution while printing the errors encountered, if POM validation fails" in new Ctx {
       val pomXml =
         <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
