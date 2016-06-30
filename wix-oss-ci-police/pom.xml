@@ -153,9 +153,9 @@
                             </dependency>
                         </dependencies>
                         <configuration>
-                            <!-- performing `install` to make sure it is installed before the ITs are executed
-                                 (ITs are counting the artifact is locally installed) -->
-                            <preparationGoals>clean install -DisRelease=true</preparationGoals>
+                            <!-- override the default preparation goals (`clean verify`), to add the "is release" flag
+                                 (used by the ci-police plugin), to indicate validations are for "release" mode -->
+                            <preparationGoals>clean verify -DisRelease=true</preparationGoals>
                         </configuration>
                     </plugin>
                 </plugins>
