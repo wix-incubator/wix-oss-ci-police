@@ -465,20 +465,20 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       val mvnProject = mavenProject(
           licenses = Seq(
             mavenLicense(
-              name = Some("NOT Apache License"),
-              url = Some("http://www.apache.org/licenses/LICENSE-2.0.txt"),
+              name = Some("NOT modified BSD License"),
+              url = Some("https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
               distribution = Some("repo")),
             mavenLicense(
-              name = Some("Apache License"),
-              url = Some("NOT http://www.apache.org/licenses/LICENSE-2.0.txt"),
+              name = Some("modified BSD License"),
+              url = Some("NOT https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
               distribution = Some("repo")),
             mavenLicense(
-              name = Some("Apache License"),
-              url = Some("http://www.apache.org/licenses/LICENSE-2.0.txt"),
+              name = Some("modified BSD License"),
+              url = Some("https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
               distribution = Some("NOT repo")),
             mavenLicense(
-              name = Some("Apache License, Version 2.0"),
-              url = Some("http://www.apache.org/licenses/LICENSE-2.0.txt"),
+              name = Some("modified BSD License"),
+              url = Some("https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
               distribution = Some("repo"))))
 
       validate(mvnProject) must succeed

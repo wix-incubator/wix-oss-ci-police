@@ -226,8 +226,8 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
           <licenses>
             <license>
-              <name>Apache License, Version 2.0</name>
-              <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <name>modified BSD License</name>
+              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>
@@ -296,8 +296,8 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
           <licenses>
             <license>
-              <name>Apache License, Version 2.0</name>
-              <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <name>modified BSD License</name>
+              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>
@@ -378,8 +378,8 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
           <licenses>
             <license>
-              <name>Apache License, Version 2.0</name>
-              <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <name>modified BSD License</name>
+              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>
@@ -461,8 +461,8 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
           <licenses>
             <license>
-              <name>Apache License, Version 2.0</name>
-              <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <name>modified BSD License</name>
+              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>

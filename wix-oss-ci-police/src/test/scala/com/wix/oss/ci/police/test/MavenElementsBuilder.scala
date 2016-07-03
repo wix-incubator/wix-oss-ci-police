@@ -98,8 +98,8 @@ object MavenElementsBuilder {
     issueManagement
   }
 
-  def mavenLicense(name: Option[String] = Some("Apache License, Version 2.0"),
-                   url: Option[String] = Some("http://www.apache.org/licenses/LICENSE-2.0.txt"),
+  def mavenLicense(name: Option[String] = Some("modified BSD License"),
+                   url: Option[String] = Some("https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
                    distribution: Option[String] = Some("repo")): License = {
     val license = new License
 

@@ -22,8 +22,8 @@ import com.wix.accord.ViolationBuilder._
   */
 class LicenseValidator extends NullSafeValidator[JList[License]] (
   licenses => licenses.exists(license =>
-    license.getName == "Apache License, Version 2.0" &&
-    license.getUrl == "http://www.apache.org/licenses/LICENSE-2.0.txt" &&
+    license.getName == "modified BSD License" &&
+    license.getUrl == "https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md" &&
     license.getDistribution == "repo"),
   _ -> "must have a valid License"
 )
