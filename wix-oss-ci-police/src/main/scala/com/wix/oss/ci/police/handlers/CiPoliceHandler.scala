@@ -14,7 +14,7 @@ import org.apache.maven.plugin.logging.Log
 import org.apache.maven.project.MavenProject
 import com.wix.accord.{Failure, Success, _}
 import com.wix.oss.ci.police.CiPoliceViolationException
-import com.wix.oss.ci.police.validators.CiPoliceValidator.mavenProjectValidator
+import com.wix.oss.ci.police.validators.CiPoliceValidator
 
 
 /** The handler of the Open Source Software CI Police Mojo.
@@ -30,7 +30,9 @@ class CiPoliceHandler(mavenProject: MavenProject, isRelease: Boolean, log: Log, 
     } else {
       log.info(s"Identified ${if (isRelease) {"release"} else "development (RC)"} execution")
 
-      validate(mavenProject -> isRelease) match {
+      val ciPoliceValidator = CiPoliceValidator.getValidator(isRelease)
+
+      validate(mavenProject)(ciPoliceValidator) match {
         case Success =>
           log.info("POM validation passed")
 

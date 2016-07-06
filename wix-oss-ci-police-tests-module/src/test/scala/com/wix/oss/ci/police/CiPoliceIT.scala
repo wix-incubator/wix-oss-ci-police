@@ -22,7 +22,7 @@ import com.wix.oss.ci.police.mojos.CiPoliceMojo
 import com.wix.oss.ci.police.test.FilesSupport._
 import com.wix.oss.ci.police.test.MavenResult
 import com.wix.oss.ci.police.test.MavenSupport._
-import CiPoliceIT.{buildFailureLogMessage, buildSuccessLogMessage}
+import CiPoliceIT.{buildFailureLogMessage, buildSuccessLogMessage, licenseMdContent}
 
 
 /** The IT of the OSS CI Police.
@@ -166,11 +166,24 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
     override def after: Unit = deleteDirectory(projectDir)
 
 
-    def mavenExecution(pom: Elem, goals: String*)(implicit isRelease: Boolean): MavenResult = {
-      val pomFile = projectDir.resolve("pom.xml")
+    def generateLicenseMdFile(content: String = licenseMdContent, path: Path = projectDir): Unit = {
+      val licenseFile = path.resolve("LICENSE.md")
 
+      Files.write(
+        licenseFile,
+        content.getBytes("UTF-8"))
+    }
+
+    def saveMavenProject(pom: Elem, path: Path = projectDir): Path = {
+      val pomFile = path.resolve("pom.xml")
+
+      Files.createDirectories(path)
       XML.save(pomFile.toString, pom)
 
+      pomFile
+    }
+
+    def mavenExecution(pomFile: Path, goals: String*)(implicit isRelease: Boolean): MavenResult = {
       val result = executeMaven(pomFile, Option(new ITLoggingExecutionEventListener(logFile)), goals: _*)
 
       MavenResult(exitCode = -result.getExceptions.length, log = readFile(logFile))
@@ -227,7 +240,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <licenses>
             <license>
               <name>modified BSD License</name>
-              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
+              <url>https://github.com/wix/test-project/blob/master/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>
@@ -254,7 +267,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           </build>
         </project>
 
-      mavenExecution(pomXml, "clean", "verify") must completeSuccessfully
+      mavenExecution(saveMavenProject(pomXml), "clean", "verify") must completeSuccessfully
     }
 
     "explode Maven execution while printing the errors encountered, if POM validation fails" in new Ctx {
@@ -297,7 +310,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <licenses>
             <license>
               <name>modified BSD License</name>
-              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
+              <url>https://github.com/wix/test-project/blob/master/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>
@@ -322,9 +335,9 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           </build>
         </project>
 
-      mavenExecution(pomXml, "clean", "verify") must explodeWith(
+      mavenExecution(saveMavenProject(pomXml), "clean", "verify") must explodeWith(
         containAllOf(Seq(
-          s"Validation error: url [$invalidUrl] (must be of format https://github.com/wix/{project})",
+          s"Validation error: project url [$invalidUrl] (must be of format https://github.com/wix/{project})",
           s"Validation error: organization is missing")))
     }
   }
@@ -379,7 +392,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <licenses>
             <license>
               <name>modified BSD License</name>
-              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
+              <url>https://github.com/wix/test-project/blob/master/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>
@@ -419,7 +432,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           </build>
         </project>
 
-      mavenExecution(pomXml, "release:clean", "release:prepare") must completeSuccessfully
+      mavenExecution(saveMavenProject(pomXml), "release:clean", "release:prepare") must completeSuccessfully
     }
 
     "explode Maven execution while printing the errors encountered, if POM validation fails" in new Ctx {
@@ -435,7 +448,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <packaging>pom</packaging>
           <description>bla bla bla</description>
           <name>some sexy name</name>
-          <url>{invalidUrl}</url>
+          <url>https://github.com/wix/some-test-project</url>
 
           <developers>
             <developer>
@@ -462,7 +475,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           <licenses>
             <license>
               <name>modified BSD License</name>
-              <url>https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md</url>
+              <url>https://github.com/wix/test-project/blob/master/LICENSE.md</url>
               <distribution>repo</distribution>
             </license>
           </licenses>
@@ -502,16 +515,291 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
           </build>
         </project>
 
-      mavenExecution(pomXml, "release:clean", "release:prepare") must explodeWith(
+      mavenExecution(saveMavenProject(pomXml), "release:clean", "release:prepare") must explodeWith(
         containAllOf(Seq(
-          s"Validation error: url [$invalidUrl] (must be of format https://github.com/wix/{project})",
           s"Validation error: organization is missing")))
+    }
+  }
+
+
+  "Maven execution of a sub-module" should {
+    implicit val isRelease = false
+    val ciPoliceVersion = extractCiPoliceVersion
+
+    "skip validation of the project's 'url'" in new Ctx {
+      val subModuleName = "wix-os-sub-module-something"
+      val mainPom =
+        <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+
+          <groupId>com.wix</groupId>
+          <artifactId>wix-os-main-something</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <packaging>pom</packaging>
+
+          <modules>
+            <module>{subModuleName}</module>
+          </modules>
+        </project>
+
+      val subModulePom =
+        <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+
+          <groupId>com.wix</groupId>
+          <artifactId>{subModuleName}</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <description>bla bla bla</description>
+          <packaging>pom</packaging>
+          <name>some sexy name</name>
+
+          <developers>
+            <developer>
+              <name>kuki buki</name>
+              <email>kuki.buki@wix.com</email>
+              <roles>
+                <role>owner</role>
+              </roles>
+            </developer>
+          </developers>
+
+          <organization>
+            <name>wix.com</name>
+            <url>http://wix.io</url>
+          </organization>
+
+          <scm>
+            <url>https://github.com/wix/test-project</url>
+            <connection>scm:git:git://github.com/wix/test-project.git</connection>
+            <developerConnection>scm:git:git@github.com:wix/test-project.git</developerConnection>
+            <tag>HEAD</tag>
+          </scm>
+
+          <issueManagement>
+            <url>https://github.com/wix/test-project/issues</url>
+            <system>GitHub Issues</system>
+          </issueManagement>
+
+          <licenses>
+            <license>
+              <name>modified BSD License</name>
+              <url>https://github.com/wix/test-project/blob/master/LICENSE.md</url>
+              <distribution>repo</distribution>
+            </license>
+          </licenses>
+
+          <build>
+            <plugins>
+              <plugin>
+                <groupId>com.wix</groupId>
+                <artifactId>wix-oss-ci-police</artifactId>
+                <version>
+                  {ciPoliceVersion}
+                </version>
+                <executions>
+                  <execution>
+                    <id>wix-oss-ci-police</id>
+                    <phase>validate</phase>
+                    <goals>
+                      <goal>wix-oss-ci-police</goal>
+                    </goals>
+                  </execution>
+                </executions>
+              </plugin>
+            </plugins>
+          </build>
+        </project>
+
+      val mainPomFile = saveMavenProject(mainPom)
+      val subModulePomFile = saveMavenProject(subModulePom, mainPomFile.getParent.resolve(subModuleName))
+
+      mavenExecution(subModulePomFile, "clean", "verify") must completeSuccessfully
+    }
+
+    "skip validation of 'scm'" in new Ctx {
+      val subModuleName = "wix-os-sub-module-something"
+      val mainPom =
+        <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+
+          <groupId>com.wix</groupId>
+          <artifactId>wix-os-main-something</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <packaging>pom</packaging>
+
+          <modules>
+            <module>{subModuleName}</module>
+          </modules>
+        </project>
+
+      val subModulePom =
+        <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+
+          <groupId>com.wix</groupId>
+          <artifactId>{subModuleName}</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <description>bla bla bla</description>
+          <packaging>pom</packaging>
+          <name>some sexy name</name>
+          <url>https://github.com/wix/some-test-project</url>
+
+          <developers>
+            <developer>
+              <name>kuki buki</name>
+              <email>kuki.buki@wix.com</email>
+              <roles>
+                <role>owner</role>
+              </roles>
+            </developer>
+          </developers>
+
+          <organization>
+            <name>wix.com</name>
+            <url>http://wix.io</url>
+          </organization>
+
+          <issueManagement>
+            <url>https://github.com/wix/test-project/issues</url>
+            <system>GitHub Issues</system>
+          </issueManagement>
+
+          <licenses>
+            <license>
+              <name>modified BSD License</name>
+              <url>https://github.com/wix/test-project/blob/master/LICENSE.md</url>
+              <distribution>repo</distribution>
+            </license>
+          </licenses>
+
+          <build>
+            <plugins>
+              <plugin>
+                <groupId>com.wix</groupId>
+                <artifactId>wix-oss-ci-police</artifactId>
+                <version>
+                  {ciPoliceVersion}
+                </version>
+                <executions>
+                  <execution>
+                    <id>wix-oss-ci-police</id>
+                    <phase>validate</phase>
+                    <goals>
+                      <goal>wix-oss-ci-police</goal>
+                    </goals>
+                  </execution>
+                </executions>
+              </plugin>
+            </plugins>
+          </build>
+        </project>
+
+      val mainPomFile = saveMavenProject(mainPom)
+      val subModulePomFile = saveMavenProject(subModulePom, mainPomFile.getParent.resolve(subModuleName))
+
+      mavenExecution(subModulePomFile, "clean", "verify") must completeSuccessfully
+    }
+
+    "skip validation of 'licenses'" in new Ctx {
+      val subModuleName = "wix-os-sub-module-something"
+      val mainPom =
+        <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+
+          <groupId>com.wix</groupId>
+          <artifactId>wix-os-main-something</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <packaging>pom</packaging>
+
+          <modules>
+            <module>{subModuleName}</module>
+          </modules>
+        </project>
+
+      val subModulePom =
+        <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+
+          <groupId>com.wix</groupId>
+          <artifactId>{subModuleName}</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <description>bla bla bla</description>
+          <packaging>pom</packaging>
+          <name>some sexy name</name>
+          <url>https://github.com/wix/some-test-project</url>
+
+          <developers>
+            <developer>
+              <name>kuki buki</name>
+              <email>kuki.buki@wix.com</email>
+              <roles>
+                <role>owner</role>
+              </roles>
+            </developer>
+          </developers>
+
+          <organization>
+            <name>wix.com</name>
+            <url>http://wix.io</url>
+          </organization>
+
+          <issueManagement>
+            <url>https://github.com/wix/test-project/issues</url>
+            <system>GitHub Issues</system>
+          </issueManagement>
+
+          <scm>
+            <url>https://github.com/wix/test-main-project</url>
+            <connection>scm:git:git://github.com/wix/test-main-project.git</connection>
+            <developerConnection>scm:git:git@github.com:wix/test-main-project.git</developerConnection>
+            <tag>HEAD</tag>
+          </scm>
+
+          <build>
+            <plugins>
+              <plugin>
+                <groupId>com.wix</groupId>
+                <artifactId>wix-oss-ci-police</artifactId>
+                <version>
+                  {ciPoliceVersion}
+                </version>
+                <executions>
+                  <execution>
+                    <id>wix-oss-ci-police</id>
+                    <phase>validate</phase>
+                    <goals>
+                      <goal>wix-oss-ci-police</goal>
+                    </goals>
+                  </execution>
+                </executions>
+              </plugin>
+            </plugins>
+          </build>
+        </project>
+
+      val mainPomFile = saveMavenProject(mainPom)
+      val subModulePomFile = saveMavenProject(subModulePom, mainPomFile.getParent.resolve(subModuleName))
+
+      mavenExecution(subModulePomFile, "clean", "verify") must completeSuccessfully
     }
   }
 }
 
 
-/** The Companion Object, defining the log records of successful execution, and of a failed execution.
+/** The Companion Object, defining the log records of successful execution, and of a failed execution, and
+  * the content of the LICENSE.md file.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
@@ -524,4 +812,34 @@ object CiPoliceIT {
     "[INFO] ------------------------------------------------------------------------",
     "[INFO] BUILD FAILURE",
     "[INFO] ------------------------------------------------------------------------")
+
+  val licenseMdContent =
+    s"""Copyright (c) 2015, Wix.com Ltd.
+       |All rights reserved.
+       |
+       |Redistribution and use in source and binary forms, with or without
+       |modification, are permitted provided that the following conditions are met:
+       |
+       |* Redistributions of source code must retain the above copyright notice, this
+       |  list of conditions and the following disclaimer.
+       |
+       |* Redistributions in binary form must reproduce the above copyright notice,
+       |  this list of conditions and the following disclaimer in the documentation
+       |  and/or other materials provided with the distribution.
+       |
+       |* Neither the name of Wix.com Ltd. nor the names of its
+       |  contributors may be used to endorse or promote products derived from
+       |  this software without specific prior written permission.
+       |
+       |THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+       |AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+       |IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+       |DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+       |FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+       |DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+       |SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+       |CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+       |OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+       |OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+     """.stripMargin
 }

@@ -8,68 +8,186 @@ package com.wix.oss.ci.police.validators
 
 
 import org.apache.maven.model.Scm
-import com.wix.accord.{NullSafeValidator, Validator}
-import com.wix.accord.dsl._
+import org.apache.maven.project.MavenProject
+import com.wix.accord.{NullSafeValidator, RuleViolation, Validator}
 import com.wix.accord.ViolationBuilder._
-import NotBlankValidator.notBlank
-import ScmConnectionValidator.validScmConnection
-import ScmDeveloperConnectionValidator.validScmDeveloperConnection
-import UrlValidator.validUrl
+import ScmValidator._
 
 
-/** A validator for Maven Project's `scm`, to validate that the `url`, `connection` and `developerConnection` are of
+/** A validator for Maven Project's `scm`. It validates that the `url`, `connection` and `developerConnection` are of
   * the correct format, and that `tag` is not blank.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
+class ScmValidator extends NullSafeValidator[MavenProject] (
+  {
+    case HasScm(scm) =>
+      Option(scm.getUrl).exists(_.matches(validUrlRegex)) &&
+      Option(scm.getConnection).exists(_.matches(validConnectionRegex)) &&
+      Option(scm.getDeveloperConnection).exists(_.matches(validDeveloperConnectionRegex)) &&
+      !isBlank(scm.getTag)
+
+    case IsSubModule() =>
+      true
+
+    case _ =>
+      false
+  },
+  mvnProject => singleViolationToFailure(Option(mvnProject.getScm).map(scm =>
+    RuleViolation(
+      getInvalidValue(scm),
+      getViolatedConstraint(scm),
+      getViolationDescription(scm)))
+    .getOrElse(RuleViolation(
+      null,
+      "SCM must not be null",
+      Some("scm"))))
+)
+
+
+/** The Companion Object, which introduce readable alternatives for instantiating the validator, plus constants and
+  * helper methods for querying the violation.
+  *
+  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
+  */
 object ScmValidator {
-  implicit val scmValidator = validator[Scm] { scm =>
-    scm.getUrl as "scm.url" is validUrl()
-    scm.getConnection as "scm.connection" is validScmConnection
-    scm.getDeveloperConnection as "scm.developerConnection" is validScmDeveloperConnection
-    scm.getTag as "scm.tag" is notBlank
+  val validUrlRegex = "https://github\\.com/wix/.+"
+  val validConnectionRegex = "scm:git:git://github\\.com/wix/.+\\.git"
+  val validDeveloperConnectionRegex = "scm:git:git@github\\.com:wix/.+\\.git"
+  val isBlank: String => Boolean = value => Option(value).exists(_.trim == "")
+  val haveValidScm: Validator[MavenProject] = new ScmValidator
+
+  def getInvalidValue(scm: Scm): String = {
+    scm match {
+      case BlankUrl() | BlankConnection() | BlankDeveloperConnection() | BlankTag() => ""
+      case HasInvalidUrl(url)                                                       => url
+      case HasInvalidConnection(connection)                                         => connection
+      case HasInvalidDeveloperConnection(developerConnection)                       => developerConnection
+    }
   }
 
-  val validScm: Validator[Scm] = scmValidator
+  def getViolatedConstraint(scm: Scm): String = {
+    scm match {
+      case BlankUrl() | BlankConnection() | BlankDeveloperConnection() | BlankTag() =>
+        "must not be blank"
+
+      case HasInvalidUrl(url) =>
+        "must be of format https://github.com/wix/{project}"
+
+      case HasInvalidConnection(connection) =>
+        "must be of the format of scm:git:git://github.com/wix/{project}.git"
+
+      case HasInvalidDeveloperConnection(developerConnection) =>
+        "must be of the format of scm:git:git@github.com:wix/{project}.git"
+    }
+  }
+
+  def getViolationDescription(scm: Scm): Option[String] = {
+    scm match {
+      case BlankUrl() | HasInvalidUrl(_)                                 => Some("scm.url")
+      case BlankConnection() | HasInvalidConnection(_)                   => Some("scm.connection")
+      case BlankDeveloperConnection() | HasInvalidDeveloperConnection(_) => Some("scm.developerConnection")
+      case BlankTag()                                                    => Some("scm.tag")
+      case _                                                             => None
+    }
+  }
+
+  def getInvalidValue(value: String, validRegex: String): Option[String] = {
+    if (value.matches(validRegex)) {
+      None
+    } else {
+      Some(value)
+    }
+  }
 }
 
 
-
-/** A validator for `connection` element of Maven Project's `scm`, to validate that it is of the correct format.
+/** Extractor Object that extracts SCM object out of the given Maven Project.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class ScmConnectionValidator extends NullSafeValidator[String] (
-  connection => connection.matches("scm:git:git://github\\.com/wix/.+\\.git"),
-  _ -> "must be of the format of scm:git:git://github.com/wix/{project}.git"
-)
-
-
-/** The Companion Object, which introduce readable alternatives for instantiating the validator.
-  *
-  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
-  */
-object ScmConnectionValidator {
-  def validScmConnection = new ScmConnectionValidator
+object HasScm {
+  def unapply(mavenProject: MavenProject): Option[Scm] = {
+    Option(mavenProject.getScm)
+  }
 }
 
 
-
-/** A validator for `developerConnection` element of Maven Project's `scm`, to validate that it is of the correct
-  * format.
+/** Extractor Object that indicates whether the SCM's `url` is blank (missing or with blank value).
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class ScmDeveloperConnectionValidator extends NullSafeValidator[String] (
-  devConn => devConn.matches("scm:git:git@github\\.com:wix/.+\\.git"),
-  _ -> "must be of the format of scm:git:git@github.com:wix/{project}.git"
-)
+object BlankUrl {
+  def unapply(scm: Scm): Boolean = {
+    isBlank(scm.getUrl)
+  }
+}
 
 
-/** The Companion Object, which introduce readable alternatives for instantiating the validator.
+/** Extractor Object that indicates whether the SCM's `connection` is blank (missing or with blank value).
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-object ScmDeveloperConnectionValidator {
-  def validScmDeveloperConnection = new ScmDeveloperConnectionValidator
+object BlankConnection {
+  def unapply(scm: Scm): Boolean = {
+    isBlank(scm.getConnection)
+  }
+}
+
+
+/** Extractor Object that indicates whether the SCM's `developerConnection` is blank (missing or with blank value).
+  *
+  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
+  */
+object BlankDeveloperConnection {
+  def unapply(scm: Scm): Boolean = {
+    isBlank(scm.getDeveloperConnection)
+  }
+}
+
+
+/** Extractor Object that indicates whether the SCM's `tag` is blank (missing or with blank value).
+  *
+  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
+  */
+object BlankTag {
+  def unapply(scm: Scm): Boolean = {
+    isBlank(scm.getTag)
+  }
+}
+
+
+/** Extractor Object that extracts the (invalid) SCM's `url` (i.e., not of the format
+  * `https://github.com/wix/{project}`).
+  *
+  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
+  */
+object HasInvalidUrl {
+  def unapply(scm: Scm): Option[String] = {
+    getInvalidValue(scm.getUrl, validUrlRegex)
+  }
+}
+
+
+/** Extractor Object that extracts the (invalid) SCM's `connection` (i.e., not of the format
+  * `scm:git:git://github.com/wix/{project}.git`).
+  *
+  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
+  */
+object HasInvalidConnection {
+  def unapply(scm: Scm): Option[String] = {
+    getInvalidValue(scm.getConnection, validConnectionRegex)
+  }
+}
+
+
+/** Extractor Object that extracts the (invalid) SCM's `developerConnection` (i.e., not of the format
+  * `scm:git:git@github.com:wix/{project}.git`).
+  *
+  * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
+  */
+object HasInvalidDeveloperConnection {
+  def unapply(scm: Scm): Option[String] = {
+    getInvalidValue(scm.getDeveloperConnection, validDeveloperConnectionRegex)
+  }
 }

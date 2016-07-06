@@ -15,7 +15,6 @@ import org.specs2.mutable.SpecWithJUnit
 import com.wix.accord.{validate => accordValidate}
 import com.wix.accord.specs2.ResultMatchers
 import com.wix.oss.ci.police.test.MavenElementsBuilder._
-import CiPoliceValidator.mavenProjectValidator
 
 
 /** The Unit Test class for the [[CiPoliceValidator]] object.
@@ -28,7 +27,11 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
   val invalidUrl = "https://github.com/wixxiw/kuki-buki"
   val someReleaseFlag = false
 
-  def validate(project: MavenProject, isRelease: Boolean = someReleaseFlag) = accordValidate(project -> isRelease)
+  def validate(project: MavenProject, isRelease: Boolean = someReleaseFlag) = {
+    val ciPoliceValidator = CiPoliceValidator.getValidator(isRelease)
+
+    accordValidate(project)(ciPoliceValidator)
+  }
 
   "Maven Project's 'groupId'" should {
     "be accepted, if equals to 'com.wix'" in {
@@ -99,7 +102,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
   }
 
 
-  "Maven Project's 'version', in a non-release execution" should {
+  "Maven Project's 'version', in development (RC) execution" should {
     "be accepted, if satisfies the format of '{number}.{number}.{number}-SNAPSHOT'" in {
       val mvnProject = mavenProject(
           version = Some("3.33.333-SNAPSHOT"))
@@ -121,8 +124,8 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
           version = Some(invalidVersion))
 
       validate(mvnProject, isRelease = false) must failWith(RuleViolationMatcher(
-        value = mvnProject,
-        constraint = "must be of the form X.X.X-SNAPSHOT for non-release execution",
+        value = Some(invalidVersion),
+        constraint = "must be of the form X.X.X-SNAPSHOT for Development (RC) execution",
         description = "effective version"))
     }
 
@@ -132,19 +135,20 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
           parent = Some(mavenParent(version = None)))
 
       validate(mvnProject, isRelease = false) must failWith(RuleViolationMatcher(
-        value = mvnProject,
-        constraint = "must be of the form X.X.X-SNAPSHOT for non-release execution",
+        value = None,
+        constraint = "must be of the form X.X.X-SNAPSHOT for Development (RC) execution",
         description = "effective version"))
     }
 
     "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}-SNAPSHOT'" in {
+      val invalidVersion = "1.0-SNAPSHOT"
       val mvnProject = mavenProject(
           version = None,
-          parent = Some(mavenParent(version = Some("1.0-SNAPSHOT"))))
+          parent = Some(mavenParent(version = Some(invalidVersion))))
 
       validate(mvnProject, isRelease = false) must failWith(RuleViolationMatcher(
-        value = mvnProject,
-        constraint = "must be of the form X.X.X-SNAPSHOT for non-release execution",
+        value = Some(invalidVersion),
+        constraint = "must be of the form X.X.X-SNAPSHOT for Development (RC) execution",
         description = "effective version"))
     }
   }
@@ -172,8 +176,8 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
           version = Some(invalidVersion))
 
       validate(mvnProject, isRelease = true) must failWith(RuleViolationMatcher(
-        value = mvnProject,
-        constraint = "must be of the form X.X.X for release execution",
+        value = Some(invalidVersion),
+        constraint = "must be of the form X.X.X for Release execution",
         description = "effective version"))
     }
 
@@ -183,19 +187,20 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
           parent = Some(mavenParent(version = None)))
 
       validate(mvnProject, isRelease = true) must failWith(RuleViolationMatcher(
-        value = mvnProject,
-        constraint = "must be of the form X.X.X for release execution",
+        value = None,
+        constraint = "must be of the form X.X.X for Release execution",
         description = "effective version"))
     }
 
     "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}' in release execution" in {
+      val invalidVersion = "1.0"
       val mvnProject = mavenProject(
           version = None,
-          parent = Some(mavenParent(version = Some("1.0"))))
+          parent = Some(mavenParent(version = Some(invalidVersion))))
 
       validate(mvnProject, isRelease = true) must failWith(RuleViolationMatcher(
-        value = mvnProject,
-        constraint = "must be of the form X.X.X for release execution",
+        value = Some(invalidVersion),
+        constraint = "must be of the form X.X.X for Release execution",
         description = "effective version"))
     }
   }
@@ -246,7 +251,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidUrl,
         constraint = "must be of format https://github.com/wix/{project}",
-        description = "url"))
+        description = "project url"))
     }
   }
 
@@ -404,7 +409,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
           scm = Some(mavenScm(tag = Some(blank))))
 
       validate(mvnProject) must failWith(RuleViolationMatcher(
-        value = blank,
+        value = "",
         constraint = "must not be blank",
         description = "scm"))
     }
@@ -458,27 +463,33 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'licenses'" should {
+    val licensesRepresentation: Seq[License] => String = licenses => {
+      s"[${licenses.map(license =>
+        s"'name': '${license.getName}', 'url': '${license.getUrl}', 'distribution': '${license.getDistribution}'")
+        .mkString(", ")}]"
+    }
+
     "be accepted if holds at least one license which: " +
-      "*   'name' is Apache License" +
-      "*   'url' is http://www.apache.org/licenses/LICENSE-2.0.txt" +
-      "*   'distribution' is repo" in {
+      "*   'name' is [modified BSD License]" +
+      "*   'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]" +
+      "*   'distribution' is [repo]" in {
       val mvnProject = mavenProject(
           licenses = Seq(
             mavenLicense(
               name = Some("NOT modified BSD License"),
-              url = Some("https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
+              url = Some("https://github.com/wix/some-project/blob/master/LICENSE.md"),
               distribution = Some("repo")),
             mavenLicense(
               name = Some("modified BSD License"),
-              url = Some("NOT https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
+              url = Some("NOT https://github.com/wix/some-project/blob/master/LICENSE.md"),
               distribution = Some("repo")),
             mavenLicense(
               name = Some("modified BSD License"),
-              url = Some("https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
+              url = Some("https://github.com/wix/some-project/blob/master/LICENSE.md"),
               distribution = Some("NOT repo")),
             mavenLicense(
               name = Some("modified BSD License"),
-              url = Some("https://github.com/wix/wix-oss-parents/wix-oss-superduper-license-certified-by-legal/LICENSE.md"),
+              url = Some("https://github.com/wix/some-project/blob/master/LICENSE.md"),
               distribution = Some("repo"))))
 
       validate(mvnProject) must succeed
@@ -489,41 +500,41 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
           licenses = Nil)
 
       validate(mvnProject) must failWith(RuleViolationMatcher(
-        value = Nil: JList[License],
-        constraint = "must have a valid License",
+        value = licensesRepresentation(Nil),
+        constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
         description = "licenses"))
     }
 
-    "be rejected if 'name' is not Apache License, Version 2.0" in {
-      val invalidLicense = Seq(mavenLicense(name = Some("NOT Apache License, Version 2.0")))
+    "be rejected if 'name' is not [modified BSD License]" in {
+      val invalidLicense = Seq(mavenLicense(name = Some("NOT modified BSD License")))
       val mvnProject = mavenProject(
           licenses = invalidLicense)
 
       validate(mvnProject) must failWith(RuleViolationMatcher(
-        value = invalidLicense: JList[License],
-        constraint = "must have a valid License",
+        value = licensesRepresentation(invalidLicense),
+        constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
         description = "licenses"))
     }
 
-    "be rejected if 'url' is not http://www.apache.org/licenses/LICENSE-2.0.txt" in {
-      val invalidUrl = Seq(mavenLicense(url = Some("http://www.apache.org/licenses/NOT-LICENSE-2.0.txt")))
+    "be rejected if 'url' is not of format [https://github.com/wix/{project}/blob/master/LICENSE.md]" in {
+      val invalidUrl = Seq(mavenLicense(url = Some("https://github.com/wixwix/some-project/blob/master/LICENSE.md")))
       val mvnProject = mavenProject(
           licenses = invalidUrl)
 
       validate(mvnProject) must failWith(RuleViolationMatcher(
-        value = invalidUrl: JList[License],
-        constraint = "must have a valid License",
+        value = licensesRepresentation(invalidUrl),
+        constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
         description = "licenses"))
     }
 
-    "be rejected if 'distribution' is not repo" in {
+    "be rejected if 'distribution' is not [repo]" in {
       val invalidDistribution = Seq(mavenLicense(distribution = Some("NOT repo")))
       val mvnProject = mavenProject(
           licenses = invalidDistribution)
 
       validate(mvnProject) must failWith(RuleViolationMatcher(
-        value = invalidDistribution: JList[License],
-        constraint = "must have a valid License",
+        value = licensesRepresentation(invalidDistribution),
+        constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
         description = "licenses"))
     }
   }

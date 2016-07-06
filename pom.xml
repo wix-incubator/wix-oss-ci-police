@@ -6,7 +6,7 @@
     <artifactId>wix-oss-ci-police-aggregator</artifactId>
     <version>1.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Wix OSS CI Police - Aggregator</name>
+    <name>Wix OSS CI Pigs - Aggregator</name>
     <description>
         The aggregator of the 'CI Police' Maven plugin, whose responsibility is to validate Wix Open Source Projects.
         These validations includes:
@@ -56,8 +56,8 @@
 
     <licenses>
         <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <name>modified BSD License</name>
+            <url>https://github.com/wix/wix-oss-ci-police/blob/master/LICENSE.md</url>
             <distribution>repo</distribution>
         </license>
     </licenses>

@@ -17,8 +17,8 @@ import com.wix.oss.ci.police.validators.LicenseValidator.haveValidLicense
 import com.wix.oss.ci.police.validators.NotBlankValidator.notBlank
 import com.wix.oss.ci.police.validators.OrganizationValidator.validOrganization
 import com.wix.oss.ci.police.validators.OwnersEmailValidator.haveValidWixDomainEmails
-import com.wix.oss.ci.police.validators.ScmValidator.validScm
-import com.wix.oss.ci.police.validators.UrlValidator.validUrl
+import com.wix.oss.ci.police.validators.ProjectUrlValidator.haveValidProjectUrl
+import com.wix.oss.ci.police.validators.ScmValidator.haveValidScm
 import com.wix.oss.ci.police.validators.VersionValidator.haveValidVersion
 
 
@@ -29,22 +29,51 @@ import com.wix.oss.ci.police.validators.VersionValidator.haveValidVersion
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
 object CiPoliceValidator {
-  implicit val mavenProjectValidator = validator[(MavenProject, Boolean)] { mvnProjIsReleaseTuple =>
-    mvnProjIsReleaseTuple._1.getGroupId as "groupId" should haveValidGroupId
-    mvnProjIsReleaseTuple._1.getArtifactId as "artifactId" is notBlank
-    mvnProjIsReleaseTuple._1 as "effective version" should haveValidVersion(mvnProjIsReleaseTuple._2)
-    mvnProjIsReleaseTuple._1.getUrl as "url" is validUrl()
-    mvnProjIsReleaseTuple._1.getModel.getName as "name" is notBlank
-    mvnProjIsReleaseTuple._1.getDescription as "description" is notBlank
-    mvnProjIsReleaseTuple._1.getOrganization as "organization" is validOrganization
-    mvnProjIsReleaseTuple._1.getModel.getDevelopers as "developers" should haveValidWixDomainEmails
-    nullSafe(mvnProjIsReleaseTuple._1.getScm as "scm" is validScm, "SCM")
+  /** Common validator for both Development (RC) and Release executions */
+  val commonValidator = validator[MavenProject] { mavenProject =>
+    mavenProject.getGroupId as "groupId" should haveValidGroupId
+    mavenProject.getArtifactId as "artifactId" is notBlank
+    mavenProject.getModel.getName as "name" is notBlank
+    mavenProject.getDescription as "description" is notBlank
+    mavenProject.getOrganization as "organization" is validOrganization
+    mavenProject.getModel.getDevelopers as "developers" should haveValidWixDomainEmails
     nullSafe(
-      mvnProjIsReleaseTuple._1.getIssueManagement as "issueManagement" is validIssueManagement,
+      mavenProject.getIssueManagement as "issueManagement" is validIssueManagement,
       "Issue Management")
-    mvnProjIsReleaseTuple._1.getModel.getLicenses as "licenses" should haveValidLicense
   }
 
+  /** Special validator for Release execution only.
+    * This should be in ''addition'' to the `commonValidator`.
+    */
+  val releaseValidator = commonValidator and validator[MavenProject] { mavenProject =>
+    mavenProject as "effective version" should haveValidVersion(Version.Release)
+  }
+
+  /** Special validator for Development (RC) execution only.
+    * This should be in ''addition'' to the `commonValidator`.
+    *
+    * == NOTE ==
+    * The reason for performing these validations in Development (RC) only, and skipping them in Release, is _not_
+    * business/product, but rather technical (except for the `version` validation, which is different in Development
+    * and Release).
+    * The common to all these validations are that they are sub-module aware validations, i.e., should be skipped
+    * in the validated project is a sub-module of some other top-level project.
+    * There is no way of knowing where the current validated project is a sub-module, as it is a one direction path
+    * from the "main" project to its sub-modules). The only way to figure it out is via the file system - go up the
+    * files hierarchy, and find a pom file that declares you as its sub-module (in its `modules`).
+    * As build of Release doesn't `clone`s the repo (but basically takes the artifact from `libs-snapshot` in
+    * Artifactory and puts it in `libs-release`), figuring out whether the current project is a sub-module of another
+    * is absolutely impossible. Hence, all these validations are skipped.
+    */
+  val developmentValidator = commonValidator and validator[MavenProject] { mavenProject =>
+    mavenProject as "effective version" should haveValidVersion(Version.Development)
+    mavenProject as "project url" should haveValidProjectUrl
+    mavenProject as "scm" should haveValidScm
+    mavenProject as "licenses" should haveValidLicense
+  }
+
+
+  def getValidator(isRelease: Boolean) = if (isRelease) releaseValidator else developmentValidator
 
   def nullSafe[T](validator: Validator[T], objectIdentifier: String): Validator[T] = {
     new Validator[T] {

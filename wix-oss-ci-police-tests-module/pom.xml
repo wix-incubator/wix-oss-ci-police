@@ -5,7 +5,7 @@
     <groupId>com.wix</groupId>
     <artifactId>wix-oss-ci-police-tests-module</artifactId>
     <version>1.2.0-SNAPSHOT</version>
-    <name>Wix OSS CI Police - Tests Module</name>
+    <name>Wix OSS CI Pigs - Tests Module</name>
     <description>
         This is a separate module from the main one, as this includes tests of the plugin itself; when executed, the
         plugin itself is expected to be stored in Maven's local repository (at least), so that it could be found.
@@ -48,8 +48,8 @@
 
     <licenses>
         <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <name>modified BSD License</name>
+            <url>https://github.com/wix/wix-oss-ci-police/blob/master/LICENSE.md</url>
             <distribution>repo</distribution>
         </license>
     </licenses>

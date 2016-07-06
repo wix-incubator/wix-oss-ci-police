@@ -114,7 +114,7 @@ class CiPoliceHandlerTest extends SpecWithJUnit {
 
       handler.execute() must failWithErrors(
         s"^Validation error: groupId \\[${regexEscape(invalidGroupId)}\\] \\(must be specified, and either be 'com\\.wix', or start with 'com\\.wix\\.'\\)$$",
-        s"^Validation error: url \\[${regexEscape(invalidUrl)}\\] \\(must be of format https://github\\.com/wix/\\{project\\}\\)$$")
+        s"^Validation error: project url \\[${regexEscape(invalidUrl)}\\] \\(must be of format https://github\\.com/wix/\\{project\\}\\)$$")
     }
   }
 }
