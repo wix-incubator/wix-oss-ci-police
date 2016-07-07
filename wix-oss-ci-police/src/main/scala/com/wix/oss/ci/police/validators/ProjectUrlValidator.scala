@@ -19,8 +19,8 @@ import com.wix.accord.ViolationBuilder._
 class ProjectUrlValidator extends NullSafeValidator[MavenProject] (
   {
     case HasProjectUrl(url) => url.matches("https://github\\.com/wix/.+")
-      case IsSubModule() => true
-      case _ => false
+    case IsSubModule()      => true
+    case _                  => false
   },
   mvnProject => RuleViolation(
     mvnProject.getUrl,

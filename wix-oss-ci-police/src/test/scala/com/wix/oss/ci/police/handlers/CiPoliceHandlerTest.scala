@@ -17,13 +17,15 @@ import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
 import com.wix.oss.ci.police.CiPoliceViolationException
 import com.wix.oss.ci.police.test.MavenElementsBuilder._
+import com.wix.oss.ci.police.validators.{LicenseMdContentProvider, LicenseMdContentValidator}
+import com.wixpress.common.specs2.JMock
 
 
 /** The Unit-Test for the [[CiPoliceHandler]] class.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class CiPoliceHandlerTest extends SpecWithJUnit {
+class CiPoliceHandlerTest extends SpecWithJUnit with JMock {
 
   val regexEscape:String => String = in => {
     in.replaceAll("\\.", "\\\\.")
@@ -35,6 +37,7 @@ class CiPoliceHandlerTest extends SpecWithJUnit {
     val warnBuffer = new ListBuffer[String]
     val errorBuffer = new ListBuffer[String]
     val debugBuffer = new ListBuffer[String]
+    val licenseMdContentProvider = mock[LicenseMdContentProvider]
     val log = new BufferLog(
       debugBuffer = debugBuffer,
       infoBuffer = infoBuffer,
@@ -46,11 +49,17 @@ class CiPoliceHandlerTest extends SpecWithJUnit {
                         isRelease: Boolean = false,
                         log: Log = log,
                         skip: Boolean = false): CiPoliceHandler = {
+      checking {
+        allowing(licenseMdContentProvider).getLicenseMdContent(having(any[MavenProject])).willReturn(
+          Some(LicenseMdContentValidator.validLicenseMdContent))
+      }
+
       new CiPoliceHandler(
         mavenProject = project,
         isRelease = isRelease,
         log = log,
-        skip = skip)
+        skip = skip,
+        licenseMdContentProvider = licenseMdContentProvider)
     }
 
     def succeedWithInfoRecords(records: String*): Matcher[Unit] = {

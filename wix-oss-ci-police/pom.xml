@@ -89,6 +89,12 @@
         <!-- Test Dependencies -->
         <dependency>
             <groupId>com.wix</groupId>
+            <artifactId>specs2-jmock_${scala.tools.version}</artifactId>
+            <version>0.1.21</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.wix</groupId>
             <artifactId>accord-specs2-3-x_2.11</artifactId>
             <version>${accord.version}</version>
             <scope>test</scope>

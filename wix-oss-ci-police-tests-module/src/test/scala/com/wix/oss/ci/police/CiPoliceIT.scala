@@ -22,7 +22,8 @@ import com.wix.oss.ci.police.mojos.CiPoliceMojo
 import com.wix.oss.ci.police.test.FilesSupport._
 import com.wix.oss.ci.police.test.MavenResult
 import com.wix.oss.ci.police.test.MavenSupport._
-import CiPoliceIT.{buildFailureLogMessage, buildSuccessLogMessage, licenseMdContent}
+import com.wix.oss.ci.police.validators.LicenseMdContentValidator
+import CiPoliceIT.{buildFailureLogMessage, buildSuccessLogMessage}
 
 
 /** The IT of the OSS CI Police.
@@ -267,7 +268,8 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
     }
 
 
-    def generateLicenseMdFile(content: String = licenseMdContent, path: Path = projectDir): Unit = {
+    def givenLicenseMdFile(content: String = LicenseMdContentValidator.validLicenseMdContent,
+                           path: Path = projectDir): Unit = {
       val licenseFile = path.resolve("LICENSE.md")
 
       Files.write(
@@ -298,8 +300,10 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
     "allow Maven execution to complete successfully, if POM validation passes" in new Ctx {
       val pomXml = aPomXml()
+      val pomFile = saveMavenProject(pomXml)
 
-      mavenExecution(saveMavenProject(pomXml), "clean", "verify") must completeSuccessfully
+      givenLicenseMdFile(path = pomFile.getParent)
+      mavenExecution(pomFile, "clean", "verify") must completeSuccessfully
     }
 
     "explode Maven execution while printing the errors encountered, if POM validation fails" in new Ctx {
@@ -307,11 +311,13 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
       val pomXml = aPomXml(
         url = Some(invalidUrl),
         organization = None)
+      val pomFile = saveMavenProject(pomXml)
 
-      mavenExecution(saveMavenProject(pomXml), "clean", "verify") must explodeWith(
+      mavenExecution(pomFile, "clean", "verify") must explodeWith(
         containAllOf(Seq(
+          "Validation error: organization is missing",
           s"Validation error: project url [$invalidUrl] (must be of format https://github.com/wix/{project})",
-          s"Validation error: organization is missing")))
+          "Validation error: LICENSE.md is missing")))
     }
   }
 
@@ -322,16 +328,18 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
     "allow Maven release execution to complete successfully, if POM validation passes" in new Ctx {
       val pomXml = aPomXml(releasePlugin = Some(releasePluginElement(logFile)))
+      val pomFile = saveMavenProject(pomXml)
 
-      mavenExecution(saveMavenProject(pomXml), "release:clean", "release:prepare") must completeSuccessfully
+      mavenExecution(pomFile, "release:clean", "release:prepare") must completeSuccessfully
     }
 
     "explode Maven execution while printing the errors encountered, if POM validation fails" in new Ctx {
       val pomXml = aPomXml(
         organization = None,
         releasePlugin = Some(releasePluginElement(logFile)))
+      val pomFile = saveMavenProject(pomXml)
 
-      mavenExecution(saveMavenProject(pomXml), "release:clean", "release:prepare") must explodeWith(
+      mavenExecution(pomFile, "release:clean", "release:prepare") must explodeWith(
         containAllOf(Seq(
           s"Validation error: organization is missing")))
     }
@@ -393,6 +401,22 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
       mavenExecution(subModulePomFile, "clean", "verify") must completeSuccessfully
     }
+
+    "skip validation of LICENSE.md content" in new Ctx {
+      val subModuleName = "wix-os-sub-module-something"
+      val mainPom = mainPomFor(subModuleName)
+      val subModulePom = aPomXml(
+        artifactId = subModuleName,
+        licenses = None)
+      val mainPomFile = saveMavenProject(mainPom)
+      val subModulePomFile = saveMavenProject(subModulePom, mainPomFile.getParent.resolve(subModuleName))
+
+      givenLicenseMdFile(
+        content = "non-certified content",
+        path = mainPomFile.getParent)
+
+      mavenExecution(subModulePomFile, "clean", "verify") must completeSuccessfully
+    }
   }
 }
 
@@ -411,34 +435,4 @@ object CiPoliceIT {
     "[INFO] ------------------------------------------------------------------------",
     "[INFO] BUILD FAILURE",
     "[INFO] ------------------------------------------------------------------------")
-
-  val licenseMdContent =
-    s"""Copyright (c) 2015, Wix.com Ltd.
-       |All rights reserved.
-       |
-       |Redistribution and use in source and binary forms, with or without
-       |modification, are permitted provided that the following conditions are met:
-       |
-       |* Redistributions of source code must retain the above copyright notice, this
-       |  list of conditions and the following disclaimer.
-       |
-       |* Redistributions in binary form must reproduce the above copyright notice,
-       |  this list of conditions and the following disclaimer in the documentation
-       |  and/or other materials provided with the distribution.
-       |
-       |* Neither the name of Wix.com Ltd. nor the names of its
-       |  contributors may be used to endorse or promote products derived from
-       |  this software without specific prior written permission.
-       |
-       |THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-       |AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-       |IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-       |DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-       |FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-       |DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-       |SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-       |CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-       |OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-       |OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-     """.stripMargin
 }

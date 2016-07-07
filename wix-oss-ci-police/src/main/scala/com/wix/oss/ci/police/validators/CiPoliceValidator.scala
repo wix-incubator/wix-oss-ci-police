@@ -13,6 +13,7 @@ import com.wix.accord.{Result, Success, Validator}
 import com.wix.accord.dsl._
 import com.wix.oss.ci.police.validators.GroupIdValidator.haveValidGroupId
 import com.wix.oss.ci.police.validators.IssueManagementValidator.validIssueManagement
+import com.wix.oss.ci.police.validators.LicenseMdContentValidator.haveLicenseMdFileWithCertifiedContent
 import com.wix.oss.ci.police.validators.LicenseValidator.haveValidLicense
 import com.wix.oss.ci.police.validators.NotBlankValidator.notBlank
 import com.wix.oss.ci.police.validators.OrganizationValidator.validOrganization
@@ -65,15 +66,23 @@ object CiPoliceValidator {
     * Artifactory and puts it in `libs-release`), figuring out whether the current project is a sub-module of another
     * is absolutely impossible. Hence, all these validations are skipped.
     */
-  val developmentValidator = commonValidator and validator[MavenProject] { mavenProject =>
-    mavenProject as "effective version" should haveValidVersion(Version.Development)
-    mavenProject as "project url" should haveValidProjectUrl
-    mavenProject as "scm" should haveValidScm
-    mavenProject as "licenses" should haveValidLicense
+  val developmentValidator: LicenseMdContentProvider => Validator[MavenProject] = licenseMdResolver => {
+    commonValidator and validator[MavenProject] { mavenProject =>
+      mavenProject as "effective version" should haveValidVersion(Version.Development)
+      mavenProject as "project url" should haveValidProjectUrl
+      mavenProject as "scm" should haveValidScm
+      mavenProject as "licenses" should haveValidLicense
+      mavenProject as "LICENSE.md" should haveLicenseMdFileWithCertifiedContent(licenseMdResolver)
+    }
   }
 
 
-  def getValidator(isRelease: Boolean) = if (isRelease) releaseValidator else developmentValidator
+  def getValidator(isRelease: Boolean, licenseMdContentProvider: LicenseMdContentProvider) = {
+    if (isRelease)
+      releaseValidator
+    else
+      developmentValidator(licenseMdContentProvider)
+  }
 
   def nullSafe[T](validator: Validator[T], objectIdentifier: String): Validator[T] = {
     new Validator[T] {

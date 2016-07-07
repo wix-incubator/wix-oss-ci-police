@@ -14,14 +14,18 @@ import org.apache.maven.plugin.logging.Log
 import org.apache.maven.project.MavenProject
 import com.wix.accord.{Failure, Success, _}
 import com.wix.oss.ci.police.CiPoliceViolationException
-import com.wix.oss.ci.police.validators.CiPoliceValidator
+import com.wix.oss.ci.police.validators.{CiPoliceValidator, LicenseMdContentProvider}
 
 
 /** The handler of the Open Source Software CI Police Mojo.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class CiPoliceHandler(mavenProject: MavenProject, isRelease: Boolean, log: Log, skip: Boolean) {
+class CiPoliceHandler(mavenProject: MavenProject,
+                      isRelease: Boolean,
+                      log: Log,
+                      skip: Boolean,
+                      licenseMdContentProvider: LicenseMdContentProvider) {
 
   @throws[MojoFailureException]
   def execute(): Unit = {
@@ -30,7 +34,7 @@ class CiPoliceHandler(mavenProject: MavenProject, isRelease: Boolean, log: Log, 
     } else {
       log.info(s"Identified ${if (isRelease) {"release"} else "development (RC)"} execution")
 
-      val ciPoliceValidator = CiPoliceValidator.getValidator(isRelease)
+      val ciPoliceValidator = CiPoliceValidator.getValidator(isRelease, licenseMdContentProvider)
 
       validate(mavenProject)(ciPoliceValidator) match {
         case Success =>

@@ -11,6 +11,7 @@ import org.apache.maven.plugin.{AbstractMojo, MojoExecutionException, MojoFailur
 import org.apache.maven.plugins.annotations.{LifecyclePhase, Mojo, Parameter}
 import org.apache.maven.project.MavenProject
 import com.wix.oss.ci.police.handlers.CiPoliceHandler
+import com.wix.oss.ci.police.validators.FileBasedLicenseMdContentProvider
 
 
 /** The Mojo class, being triggered by Maven to execute the `wix-oss-ci-police` goal.
@@ -39,7 +40,8 @@ class CiPoliceMojo extends AbstractMojo {
       mavenProject = project,
       isRelease = isRelease,
       log = getLog,
-      skip = skip)
+      skip = skip,
+      licenseMdContentProvider = new FileBasedLicenseMdContentProvider)
 
     handler.execute()
   }

@@ -12,43 +12,57 @@ import java.util.{List => JList}
 import org.apache.maven.model.{Developer, License}
 import org.apache.maven.project.MavenProject
 import org.specs2.mutable.SpecWithJUnit
+import org.specs2.specification.Scope
 import com.wix.accord.{validate => accordValidate}
 import com.wix.accord.specs2.ResultMatchers
 import com.wix.oss.ci.police.test.MavenElementsBuilder._
+import com.wixpress.common.specs2.JMock
 
 
 /** The Unit Test class for the [[CiPoliceValidator]] object.
   *
   * @author <a href="mailto:ohadr@wix.com">Raz, Ohad</a>
   */
-class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
-
+class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock {
   val blank = "   "
   val invalidUrl = "https://github.com/wixxiw/kuki-buki"
   val someReleaseFlag = false
 
-  def validate(project: MavenProject, isRelease: Boolean = someReleaseFlag) = {
-    val ciPoliceValidator = CiPoliceValidator.getValidator(isRelease)
 
-    accordValidate(project)(ciPoliceValidator)
+  trait Ctx extends Scope {
+    val licenseMdContentProvider = mock[LicenseMdContentProvider]
+
+
+    def validate(project: MavenProject,
+                 isRelease: Boolean = someReleaseFlag,
+                 licenseMdContent: Option[String] = Some(LicenseMdContentValidator.validLicenseMdContent)) = {
+      checking {
+        allowing(licenseMdContentProvider).getLicenseMdContent(having(any[MavenProject])).willReturn(licenseMdContent)
+      }
+
+      val ciPoliceValidator = CiPoliceValidator.getValidator(isRelease, licenseMdContentProvider)
+
+      accordValidate(project)(ciPoliceValidator)
+    }
   }
 
+
   "Maven Project's 'groupId'" should {
-    "be accepted, if equals to 'com.wix'" in {
+    "be accepted, if equals to 'com.wix'" in new Ctx {
       val mvnProject = mavenProject(
           groupId = Some("com.wix"))
 
       validate(mvnProject) must succeed
     }
 
-    "be accepted, if starts with 'com.wix.'" in {
+    "be accepted, if starts with 'com.wix.'" in new Ctx {
       val mvnProject = mavenProject(
         groupId = Some("com.wix.kukibuki"))
 
       validate(mvnProject) must succeed
     }
 
-    "be rejected, if does not start with 'com.wix.' and not equal to 'com.wix'" in {
+    "be rejected, if does not start with 'com.wix.' and not equal to 'com.wix'" in new Ctx {
       val invalidGroupId = "kuki.buki"
       val mvnProject= mavenProject(
         groupId = Some(invalidGroupId))
@@ -59,7 +73,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "groupId"))
     }
 
-    "be rejected if missing, and no 'groupId' is specified in the 'parent'" in {
+    "be rejected if missing, and no 'groupId' is specified in the 'parent'" in new Ctx {
       val mvnProject = mavenProject(
         groupId = None,
         parent = Some(mavenParent(groupId = None)))
@@ -73,14 +87,14 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'artifactId'" should {
-    "be accepted, if not blank" in {
+    "be accepted, if not blank" in new Ctx {
       val mvnProject = mavenProject(
         artifactId = Some("some-artifact-id"))
 
       validate(mvnProject) must succeed
     }
 
-    "be rejected, if missing" in {
+    "be rejected, if missing" in new Ctx {
       val mvnProject = mavenProject(
         artifactId = None)
 
@@ -90,7 +104,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "artifactId"))
     }
 
-    "be rejected, if blank" in {
+    "be rejected, if blank" in new Ctx {
       val mvnProject = mavenProject(
         artifactId = Some(blank))
 
@@ -103,14 +117,14 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'version', in development (RC) execution" should {
-    "be accepted, if satisfies the format of '{number}.{number}.{number}-SNAPSHOT'" in {
+    "be accepted, if satisfies the format of '{number}.{number}.{number}-SNAPSHOT'" in new Ctx {
       val mvnProject = mavenProject(
           version = Some("3.33.333-SNAPSHOT"))
 
       validate(mvnProject, isRelease = false) must succeed
     }
 
-    "be accepted if missing, but a 'parent' is specified whose 'version' satisfies the format of '{number}.{number}.{number}-SNAPSHOT'" in {
+    "be accepted if missing, but a 'parent' is specified whose 'version' satisfies the format of '{number}.{number}.{number}-SNAPSHOT'" in new Ctx {
       val mvnProject = mavenProject(
           version = None,
           parent = Some(mavenParent(version = Some("3.33.333-SNAPSHOT"))))
@@ -118,7 +132,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject, isRelease = false) must succeed
     }
 
-    "be rejected, if does not satisfy the format of '{number}.{number}.{number}-SNAPSHOT'" in {
+    "be rejected, if does not satisfy the format of '{number}.{number}.{number}-SNAPSHOT'" in new Ctx {
       val invalidVersion = "kuki.buki.333-SNAPSHOT"
       val mvnProject = mavenProject(
           version = Some(invalidVersion))
@@ -129,7 +143,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "effective version"))
     }
 
-    "be rejected if missing 'version', and no 'version' is specified in the 'parent'" in {
+    "be rejected if missing 'version', and no 'version' is specified in the 'parent'" in new Ctx {
       val mvnProject = mavenProject(
           version = None,
           parent = Some(mavenParent(version = None)))
@@ -140,7 +154,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "effective version"))
     }
 
-    "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}-SNAPSHOT'" in {
+    "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}-SNAPSHOT'" in new Ctx {
       val invalidVersion = "1.0-SNAPSHOT"
       val mvnProject = mavenProject(
           version = None,
@@ -155,14 +169,14 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'version', in a release execution" should {
-    "be accepted, if satisfies the format of '{number}.{number}.{number}'" in {
+    "be accepted, if satisfies the format of '{number}.{number}.{number}'" in new Ctx {
       val mvnProject = mavenProject(
           version = Some("3.33.333"))
 
       validate(mvnProject, isRelease = true) must succeed
     }
 
-    "be accepted if missing, but a 'parent' is specified whose 'version' satisfies the format of '{number}.{number}.{number}'" in {
+    "be accepted if missing, but a 'parent' is specified whose 'version' satisfies the format of '{number}.{number}.{number}'" in new Ctx {
       val mvnProject = mavenProject(
           version = None,
           parent = Some(mavenParent(version = Some("3.33.333"))))
@@ -170,7 +184,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject, isRelease = true) must succeed
     }
 
-    "be rejected, if does not satisfy the format of '{number}.{number}.{number}'" in {
+    "be rejected, if does not satisfy the format of '{number}.{number}.{number}'" in new Ctx {
       val invalidVersion = "kuki.buki.333"
       val mvnProject = mavenProject(
           version = Some(invalidVersion))
@@ -181,7 +195,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "effective version"))
     }
 
-    "be rejected if missing 'version', and no 'version' is specified in the 'parent'" in {
+    "be rejected if missing 'version', and no 'version' is specified in the 'parent'" in new Ctx {
       val mvnProject = mavenProject(
           version = None,
           parent = Some(mavenParent(version = None)))
@@ -192,7 +206,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "effective version"))
     }
 
-    "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}' in release execution" in {
+    "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}' in release execution" in new Ctx {
       val invalidVersion = "1.0"
       val mvnProject = mavenProject(
           version = None,
@@ -207,14 +221,14 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'name'" should {
-    "be accepted if not blank" in {
+    "be accepted if not blank" in new Ctx {
       val mvnProject = mavenProject(
           name = Some("some name"))
 
       validate(mvnProject) must succeed
     }
 
-    "be rejected if missing" in {
+    "be rejected if missing" in new Ctx {
       val mvnProject = mavenProject(
           name = None)
 
@@ -224,7 +238,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "name"))
     }
 
-    "be rejected if blank" in {
+    "be rejected if blank" in new Ctx {
       val mvnProject = mavenProject(
           name = Some(blank))
 
@@ -237,14 +251,14 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'url'" should {
-    "be accepted, if starts with 'https://github.com/wix/'" in {
+    "be accepted, if starts with 'https://github.com/wix/'" in new Ctx {
       val mvnProject = mavenProject(
           url = Some("https://github.com/wix/kuki-buki"))
 
       validate(mvnProject) must succeed
     }
 
-    "be rejected, if not of the format https://github.com/wix/{project}" in {
+    "be rejected, if not of the format https://github.com/wix/{project}" in new Ctx {
       val mvnProject = mavenProject(
           url = Some(invalidUrl))
 
@@ -257,14 +271,14 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'description'" should {
-    "be accepted if not blank" in {
+    "be accepted if not blank" in new Ctx {
       val mvnProject = mavenProject(
           description = Some("some description"))
 
       validate(mvnProject) must succeed
     }
 
-    "be rejected if missing" in {
+    "be rejected if missing" in new Ctx {
       val mvnProject = mavenProject(
           description = None)
 
@@ -274,7 +288,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "description"))
     }
 
-    "be rejected if blank" in {
+    "be rejected if blank" in new Ctx {
       val mvnProject = mavenProject(
           description = Some(blank))
 
@@ -287,7 +301,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
 
 
   "Maven Project's 'developers'" should {
-    "be accepted, if owners has a valid Wix domain email address" in {
+    "be accepted, if owners has a valid Wix domain email address" in new Ctx {
       val mvnProject = mavenProject(
           developers = Seq(
             mavenDeveloper(email = Some("shuki@wiiiiiiiix.com"), roles = Seq("developer")),
@@ -296,7 +310,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject) must succeed
     }
 
-    "be rejected if there is no owner" in {
+    "be rejected if there is no owner" in new Ctx {
       val noOwners = Seq(
         mavenDeveloper(email = Some("kuki.buki@wix.com"), roles = Seq("developer")),
         mavenDeveloper(email = Some("shuki.tuki@wix.com"), roles = Seq("developer")))
@@ -309,7 +323,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "developers"))
     }
 
-    "be rejected if the owner's email address is not at Wix domain" in {
+    "be rejected if the owner's email address is not at Wix domain" in new Ctx {
       val ownerNonWixDomainAddress = Seq(
         mavenDeveloper(email = Some("suki@wix.com"), roles = Seq("developer")),
         mavenDeveloper(email = Some("kuki@wixxiw.com"), roles = Seq("owner")))
@@ -322,7 +336,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "developers"))
     }
 
-    "be rejected if the owner's email address is not valid" in {
+    "be rejected if the owner's email address is not valid" in new Ctx {
       val ownerInvalidEmailAddress = Seq(
         mavenDeveloper(email = Some(".invalid@wix.com"), roles = Seq("owner)")))
       val mvnProject = mavenProject(
@@ -334,7 +348,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "developers"))
     }
 
-    "be rejected if missing" in {
+    "be rejected if missing" in new Ctx {
       val mvnProject = mavenProject(
           developers = Nil)
 
@@ -351,7 +365,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       "*   'url' is of the format https://github.com/wix/{project} " +
       "*   'connection' is of the format scm:git:git://github.com/wix/{project}.git " +
       "*   'developerConnection' is of the format scm:git:git@github.com:wix/{project}.git " +
-      "*   'tag' is not blank" in {
+      "*   'tag' is not blank" in new Ctx {
       val mvnProject = mavenProject(
           scm = Some(mavenScm(
             url = Some("https://github.com/wix/kuki-buki"),
@@ -362,7 +376,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject) must succeed
     }
 
-    "be rejected if scm is missing" in {
+    "be rejected if scm is missing" in new Ctx {
       val mvnProject = mavenProject(
           scm = None)
 
@@ -372,7 +386,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "scm"))
     }
 
-    "be rejected if 'url' is not of the format https://github.com/wix/{project}" in {
+    "be rejected if 'url' is not of the format https://github.com/wix/{project}" in new Ctx {
       val mvnProject = mavenProject(
           scm = Some(mavenScm(url = Some(invalidUrl))))
 
@@ -382,7 +396,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "scm"))
     }
 
-    "be rejected if 'connection' is not of the format scm:git:git://github.com/wix/{project}.git" in {
+    "be rejected if 'connection' is not of the format scm:git:git://github.com/wix/{project}.git" in new Ctx {
       val invalidConnection = "scm:git:git://github.com/wix/kuki-buki"
       val mvnProject = mavenProject(
           scm = Some(mavenScm(connection = Some(invalidConnection))))
@@ -393,7 +407,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "scm"))
     }
 
-    "be rejected if 'developerConnection' is not of the format scm:git:git@github.com:wix/{project}.git" in {
+    "be rejected if 'developerConnection' is not of the format scm:git:git@github.com:wix/{project}.git" in new Ctx {
       val invalidDevConnection = "scm:git:git@github.com/wixxiw/kuki-buki.git"
       val mvnProject = mavenProject(
           scm = Some(mavenScm(developerConnection = Some(invalidDevConnection))))
@@ -404,7 +418,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "scm"))
     }
 
-    "be rejected if 'tag' is blank" in {
+    "be rejected if 'tag' is blank" in new Ctx {
       val mvnProject = mavenProject(
           scm = Some(mavenScm(tag = Some(blank))))
 
@@ -419,7 +433,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
   "Maven Project's 'issueManagement'" should {
     "be accepted if: " +
       "*   'url' is of the format https://github.com/wix/{project}/issues " +
-      "*   'system' is GitHub Issues" in {
+      "*   'system' is GitHub Issues" in new Ctx {
       val mvnProject = mavenProject(
           issueManagement = Some(mavenIssueManagement(
             url = Some("https://github.com/wix/kuki-buki/issues"),
@@ -428,7 +442,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject) must succeed
     }
 
-    "be rejected if missing" in {
+    "be rejected if missing" in new Ctx {
       val mvnProject = mavenProject(
           issueManagement = None)
 
@@ -438,7 +452,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "issueManagement"))
     }
 
-    "be rejected if 'url' is not of the format https://github.com/wix/{project}/issues" in {
+    "be rejected if 'url' is not of the format https://github.com/wix/{project}/issues" in new Ctx {
       val invalidIssuesUrl = s"$invalidUrl/issues"
       val mvnProject = mavenProject(
           issueManagement = Some(mavenIssueManagement(url = Some(invalidIssuesUrl))))
@@ -449,7 +463,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "issueManagement"))
     }
 
-    "be rejected if 'system' is not GitHub Issues" in {
+    "be rejected if 'system' is not GitHub Issues" in new Ctx {
       val invalidSystem = "not GitHub Issues"
       val mvnProject = mavenProject(
           issueManagement = Some(mavenIssueManagement(system = Some(invalidSystem))))
@@ -472,7 +486,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
     "be accepted if holds at least one license which: " +
       "*   'name' is [modified BSD License]" +
       "*   'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]" +
-      "*   'distribution' is [repo]" in {
+      "*   'distribution' is [repo]" in new Ctx {
       val mvnProject = mavenProject(
           licenses = Seq(
             mavenLicense(
@@ -495,7 +509,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject) must succeed
     }
 
-    "be rejected if missing" in {
+    "be rejected if missing" in new Ctx {
       val mvnProject = mavenProject(
           licenses = Nil)
 
@@ -505,7 +519,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "licenses"))
     }
 
-    "be rejected if 'name' is not [modified BSD License]" in {
+    "be rejected if 'name' is not [modified BSD License]" in new Ctx {
       val invalidLicense = Seq(mavenLicense(name = Some("NOT modified BSD License")))
       val mvnProject = mavenProject(
           licenses = invalidLicense)
@@ -516,7 +530,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "licenses"))
     }
 
-    "be rejected if 'url' is not of format [https://github.com/wix/{project}/blob/master/LICENSE.md]" in {
+    "be rejected if 'url' is not of format [https://github.com/wix/{project}/blob/master/LICENSE.md]" in new Ctx {
       val invalidUrl = Seq(mavenLicense(url = Some("https://github.com/wixwix/some-project/blob/master/LICENSE.md")))
       val mvnProject = mavenProject(
           licenses = invalidUrl)
@@ -527,7 +541,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "licenses"))
     }
 
-    "be rejected if 'distribution' is not [repo]" in {
+    "be rejected if 'distribution' is not [repo]" in new Ctx {
       val invalidDistribution = Seq(mavenLicense(distribution = Some("NOT repo")))
       val mvnProject = mavenProject(
           licenses = invalidDistribution)
@@ -543,7 +557,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
   "Maven Project's 'organization'" should {
     "be accepted if :" +
       "*   'name' is wix.com" +
-      "*   'url' is http://wix.io" in {
+      "*   'url' is http://wix.io" in new Ctx {
       val mvnProject = mavenProject(
           organization = Some(mavenOrganization(
             name = Some("wix.com"),
@@ -552,7 +566,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
       validate(mvnProject) must succeed
     }
 
-    "be rejected if missing" in {
+    "be rejected if missing" in new Ctx {
       val mvnProject = mavenProject(
           organization = None)
 
@@ -562,7 +576,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "organization"))
     }
 
-    "be rejected if 'name' is not wix.com" in {
+    "be rejected if 'name' is not wix.com" in new Ctx {
       val invalidName = mavenOrganization(name = Some("NOT wix.com"))
       val mvnProject = mavenProject(
           organization = Some(invalidName))
@@ -573,7 +587,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         description = "organization"))
     }
 
-    "be rejected if 'url' is not http://wix.io" in {
+    "be rejected if 'url' is not http://wix.io" in new Ctx {
       val invalidOrganizationUrl = mavenOrganization(url = Some("NOT http://wix.io"))
       val mvnProject = mavenProject(
           organization = Some(invalidOrganizationUrl))
@@ -582,6 +596,40 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers {
         value = invalidOrganizationUrl,
         constraint = "Organization name must be wix.com and url must be http://wix.io",
         description = "organization"))
+    }
+  }
+
+
+  "Maven Project's LICENSE.md" should {
+    "be accepted, if holds certified content" in new Ctx {
+      val mvnProject = mavenProject()
+
+      validate(mvnProject) must succeed
+    }
+
+    "be rejected, if missing" in new Ctx {
+      val mvnProject = mavenProject()
+
+      validate(
+        project = mvnProject,
+        licenseMdContent = None) must failWith(
+          RuleViolationMatcher(
+            value = null,
+            constraint = "LICENSE.md file is missing in project's root directory",
+            description = "LICENSE.md"))
+    }
+
+    "be rejected, if holds non-certified content" in new Ctx {
+      val invalidLicenseMdContent = "non-certified content"
+      val mvnProject = mavenProject()
+
+      validate(
+        project = mvnProject,
+        licenseMdContent = Some(invalidLicenseMdContent)) must failWith(
+          RuleViolationMatcher(
+            value = Some(invalidLicenseMdContent),
+            constraint = "is not the certified content of LICENSE.md file",
+            description = "LICENSE.md"))
     }
   }
 }
