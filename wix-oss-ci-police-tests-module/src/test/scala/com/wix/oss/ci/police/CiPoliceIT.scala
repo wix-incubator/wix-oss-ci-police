@@ -210,9 +210,9 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
                 licenses: Option[Elem] = Some(validLicenses))
                (implicit ciPoliceVersion: String): Elem = {
       val urlElem = url.map(u => <url>{u}</url>)
-      <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+      <project xmlns="http://maven.apache.org/POM/4.0.0"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xmlns="http://maven.apache.org/POM/4.0.0">
+               xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <modelVersion>4.0.0</modelVersion>
 
         <groupId>com.wix</groupId>
