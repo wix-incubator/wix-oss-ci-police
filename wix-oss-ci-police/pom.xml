@@ -19,7 +19,7 @@
     <parent>
         <groupId>com.wix</groupId>
         <artifactId>wix-oss-scala-parent</artifactId>
-        <version>0.7.0</version>
+        <version>0.38.0</version>
         <relativePath />
     </parent>
 
