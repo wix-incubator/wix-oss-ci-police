@@ -74,7 +74,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
   override def beforeAll: Unit = createReleaseLikeInstallation(tmpReleaseVersionProjectDir)
 
-  override def afterAll: Unit = deleteDirectory(tmpReleaseVersionProjectDir)
+  override def afterAll: Unit = {} // deleteDirectory(tmpReleaseVersionProjectDir)
 
 
   def extractCiPoliceVersion(implicit isRelease: Boolean): String = {
