@@ -9,7 +9,7 @@ package com.wix.oss.ci.police
 
 import scala.collection.JavaConversions._
 import scala.io.Source
-import scala.xml.{Elem, Node, NodeSeq, XML}
+import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 import java.io._
 import java.nio.file._
@@ -74,7 +74,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
 
   override def beforeAll: Unit = createReleaseLikeInstallation(tmpReleaseVersionProjectDir)
 
-  override def afterAll: Unit = {} // deleteDirectory(tmpReleaseVersionProjectDir)
+  override def afterAll: Unit = deleteDirectory(tmpReleaseVersionProjectDir)
 
 
   def extractCiPoliceVersion(implicit isRelease: Boolean): String = {
@@ -108,25 +108,33 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
       "ref: refs/heads/master".getBytes("UTF-8"))
   }
 
+  def asTopScope(node: Node): Node = {
+    node match {
+      case elem: Elem => elem.copy(scope = TopScope, child = elem.child.map(asTopScope))
+      case other => other
+    }
+  }
+
   def createReleaseLikePom(inDirectory: Path,
                            basedOn: Path): Unit = {
     val origPom = XML.loadFile(basedOn.toFile)
-    val topLevelPom = XML.loadFile(basedOn.getParent.getParent.resolve("pom.xml").toFile)
-    val topLevelPomParentElement = topLevelPom \\ "parent"
+    val ciPoliceModulePom = XML.loadFile(basedOn.getParent.resolve("pom.xml").toFile)
+    val ciPoliceModulePomParentElement = (ciPoliceModulePom \\ "parent").map(asTopScope)
     val origVersionElement = (origPom \\ "project" \ "version").head
     val replaceParentElement = new RewriteRule {
       override def transform(node: Node): NodeSeq = {
         node match {
-          case elem: Elem if elem.label == "parent" => topLevelPomParentElement
-          case elem                                 => elem
+          case elem: Elem if elem.label == "parent" => ciPoliceModulePomParentElement
+          case other                                => other
         }
       }
     }
     val replaceSnapshotVersion = new RewriteRule {
       override def transform(node: Node): NodeSeq = {
         node match {
-          case e if e == origVersionElement => <version>{e.text.stripSuffix("-SNAPSHOT")}</version>
-          case e                            => e
+          case elem if elem == origVersionElement =>
+            <version>{elem.text.stripSuffix("-SNAPSHOT")}</version>
+          case other                              => other
         }
       }
     }
@@ -210,6 +218,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
                 licenses: Option[Elem] = Some(validLicenses))
                (implicit ciPoliceVersion: String): Elem = {
       val urlElem = url.map(u => <url>{u}</url>)
+
       <project xmlns="http://maven.apache.org/POM/4.0.0"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -350,9 +359,9 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
     implicit val isRelease = false
     implicit val ciPoliceVersion = extractCiPoliceVersion
     val mainPomFor: String => Elem = subModuleName => {
-      <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+      <project xmlns="http://maven.apache.org/POM/4.0.0"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xmlns="http://maven.apache.org/POM/4.0.0">
+               xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <modelVersion>4.0.0</modelVersion>
 
         <groupId>com.wix</groupId>

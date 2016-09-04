@@ -59,7 +59,6 @@
     </licenses>
 
     <properties>
-        <scala.tools.version>2.11</scala.tools.version>
         <accord.version>0.5</accord.version>
     </properties>
 
@@ -82,14 +81,14 @@
         </dependency>
         <dependency>
             <groupId>com.wix</groupId>
-            <artifactId>accord-core_${scala.tools.version}</artifactId>
+            <artifactId>accord-core_${scala.dependencies.version}</artifactId>
             <version>${accord.version}</version>
         </dependency>
 
         <!-- Test Dependencies -->
         <dependency>
             <groupId>com.wix</groupId>
-            <artifactId>specs2-jmock_${scala.tools.version}</artifactId>
+            <artifactId>specs2-jmock_${scala.dependencies.version}</artifactId>
             <version>0.1.21</version>
             <scope>test</scope>
         </dependency>
