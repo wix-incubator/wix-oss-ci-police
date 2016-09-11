@@ -4,7 +4,7 @@
 
     <groupId>com.wix</groupId>
     <artifactId>wix-oss-ci-police-aggregator</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Wix OSS CI Pigs - Aggregator</name>
     <description>
@@ -19,13 +19,6 @@
         be found in Maven's local repository (at least in the local repository); hence, the separation.
     </description>
     <url>https://github.com/wix/wix-oss-ci-police</url>
-
-    <parent>
-        <groupId>com.wix</groupId>
-        <artifactId>wix-oss-parents</artifactId>
-        <version>0.7.0</version>
-        <relativePath />
-    </parent>
 
     <developers>
         <developer>
@@ -57,7 +50,7 @@
     <licenses>
         <license>
             <name>modified BSD License</name>
-            <url>https://github.com/wix/wix-oss-ci-police/blob/master/LICENSE.md</url>
+            <url>https://raw.githubusercontent.com/wix/wix-oss-ci-police/master/LICENSE.md</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
