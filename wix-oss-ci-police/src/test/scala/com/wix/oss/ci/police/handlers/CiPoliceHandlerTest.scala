@@ -38,7 +38,7 @@ class CiPoliceHandlerTest extends SpecWithJUnit with JMock {
     val errorBuffer = new ListBuffer[String]
     val debugBuffer = new ListBuffer[String]
     val licenseMdContentProvider = mock[LicenseMdContentProvider]
-    val log = new BufferLog(
+    val log = BufferLog(
       debugBuffer = debugBuffer,
       infoBuffer = infoBuffer,
       warnBuffer = warnBuffer,
