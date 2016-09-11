@@ -99,7 +99,7 @@ object MavenElementsBuilder {
   }
 
   def mavenLicense(name: Option[String] = Some("modified BSD License"),
-                   url: Option[String] = Some("https://github.com/wix/some-project/blob/master/LICENSE.md"),
+                   url: Option[String] = Some("https://raw.githubusercontent.com/wix/some-project/master/LICENSE.md"),
                    distribution: Option[String] = Some("repo")): License = {
     val license = new License
 

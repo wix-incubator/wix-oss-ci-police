@@ -48,7 +48,7 @@ class LicenseValidator extends NullSafeValidator[MavenProject] (
 object LicenseValidator {
   val haveValidLicense = new LicenseValidator
 
-  val validUrlRegex = "https://github\\.com/wix/.+/blob/master/LICENSE\\.md"
+  val validUrlRegex = "https://raw\\.githubusercontent\\.com/wix/.+/master/LICENSE\\.md"
 
   def validLicense(license: License): Boolean = {
     license.getName == "modified BSD License" &&

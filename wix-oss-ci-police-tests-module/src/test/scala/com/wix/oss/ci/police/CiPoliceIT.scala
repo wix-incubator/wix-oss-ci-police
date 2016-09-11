@@ -65,7 +65,7 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
     <licenses>
       <license>
         <name>modified BSD License</name>
-        <url>https://github.com/wix/test-project/blob/master/LICENSE.md</url>
+        <url>https://raw.githubusercontent.com/wix/test-project/master/LICENSE.md</url>
         <distribution>repo</distribution>
       </license>
     </licenses>

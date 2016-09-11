@@ -485,25 +485,25 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
 
     "be accepted if holds at least one license which: " +
       "*   'name' is [modified BSD License]" +
-      "*   'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]" +
+      "*   'url' of format [https://raw.githubusercontent.com/wix/{project}/master/LICENSE.md]" +
       "*   'distribution' is [repo]" in new Ctx {
       val mvnProject = mavenProject(
           licenses = Seq(
             mavenLicense(
               name = Some("NOT modified BSD License"),
-              url = Some("https://github.com/wix/some-project/blob/master/LICENSE.md"),
+              url = Some("https://raw.githubusercontent.com/wix/some-project/master/LICENSE.md"),
               distribution = Some("repo")),
             mavenLicense(
               name = Some("modified BSD License"),
-              url = Some("NOT https://github.com/wix/some-project/blob/master/LICENSE.md"),
+              url = Some("NOT https://raw.githubusercontent.com/wix/some-project/master/LICENSE.md"),
               distribution = Some("repo")),
             mavenLicense(
               name = Some("modified BSD License"),
-              url = Some("https://github.com/wix/some-project/blob/master/LICENSE.md"),
+              url = Some("https://raw.githubusercontent.com/wix/some-project/master/LICENSE.md"),
               distribution = Some("NOT repo")),
             mavenLicense(
               name = Some("modified BSD License"),
-              url = Some("https://github.com/wix/some-project/blob/master/LICENSE.md"),
+              url = Some("https://raw.githubusercontent.com/wix/some-project/master/LICENSE.md"),
               distribution = Some("repo"))))
 
       validate(mvnProject) must succeed
