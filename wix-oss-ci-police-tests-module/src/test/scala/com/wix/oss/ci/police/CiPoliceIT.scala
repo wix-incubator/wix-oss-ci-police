@@ -86,12 +86,10 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
         file.matches(s"wix-oss-ci-police-\\d+\\.\\d+\\.\\d+(-SNAPSHOT)?\\.jar")).head
     }
 
-    val version = ciPoliceFilename.drop("wix-oss-ci-police-".length).dropRight(".jar".length)
+    val version = ciPoliceFilename.stripPrefix("wix-oss-ci-police-").stripSuffix(".jar")
 
-    if (isRelease && version.endsWith("-SNAPSHOT")) {
-      version.dropRight("-SNAPSHOT".length)
-    } else if (!isRelease && !version.endsWith("-SNAPSHOT")) {
-      s"$version-SNAPSHOT"
+    if (isRelease) {
+      version.stripSuffix("-SNAPSHOT")
     } else {
       version
     }
@@ -134,7 +132,8 @@ class CiPoliceIT extends SpecWithJUnit with BeforeAfterAll {
         node match {
           case elem if elem == origVersionElement =>
             <version>{elem.text.stripSuffix("-SNAPSHOT")}</version>
-          case other                              => other
+          case other =>
+            other
         }
       }
     }
