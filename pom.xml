@@ -4,7 +4,7 @@
 
     <groupId>com.wix</groupId>
     <artifactId>wix-oss-ci-police-aggregator</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Wix OSS CI Pigs - Aggregator</name>
     <description>
@@ -19,6 +19,7 @@
         be found in Maven's local repository (at least in the local repository); hence, the separation.
     </description>
     <url>https://github.com/wix/wix-oss-ci-police</url>
+
 
     <developers>
         <developer>
