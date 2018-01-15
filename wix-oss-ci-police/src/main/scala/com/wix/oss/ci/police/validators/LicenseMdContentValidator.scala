@@ -7,12 +7,14 @@
 package com.wix.oss.ci.police.validators
 
 
-import scala.io.Source
 import java.nio.file.Files
-import org.apache.maven.project.MavenProject
-import com.wix.accord.{NullSafeValidator, RuleViolation}
+
 import com.wix.accord.ViolationBuilder._
-import LicenseMdContentValidator.{hasValidContent, hasLicenseMdFile}
+import com.wix.accord.{NullSafeValidator, RuleViolation}
+import com.wix.oss.ci.police.validators.LicenseMdContentValidator.{hasLicenseMdFile, hasValidContent}
+import org.apache.maven.project.MavenProject
+
+import scala.io.Source
 
 
 /** A validator for Maven Project's `LICENSE.md` content, to validate it is of the certified version.
@@ -34,12 +36,10 @@ class LicenseMdContentValidator(licenseMdContentProvider: LicenseMdContentProvid
     case mavenProject if hasLicenseMdFile(licenseMdContentProvider, mavenProject) =>
       RuleViolation(
         licenseMdContentProvider.getLicenseMdContent(mavenProject),
-        "is not the certified content of LICENSE.md file",
-        None)
+        "is not the certified content of LICENSE.md file")
     case _ => RuleViolation(
       null,
-      "LICENSE.md file is missing in project's root directory",
-      None)
+      "LICENSE.md file is missing in project's root directory")
   }
 )
 

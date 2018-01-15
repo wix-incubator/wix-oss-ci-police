@@ -7,16 +7,18 @@
 package com.wix.oss.ci.police.validators
 
 
-import scala.collection.JavaConversions._
 import java.util.{List => JList}
+
+import com.wix.accord.specs2.ResultMatchers
+import com.wix.accord.{validate => accordValidate}
+import com.wix.oss.ci.police.test.MavenElementsBuilder._
+import com.wixpress.common.specs2.JMock
 import org.apache.maven.model.{Developer, License}
 import org.apache.maven.project.MavenProject
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
-import com.wix.accord.{validate => accordValidate}
-import com.wix.accord.specs2.ResultMatchers
-import com.wix.oss.ci.police.test.MavenElementsBuilder._
-import com.wixpress.common.specs2.JMock
+
+import scala.collection.JavaConversions._
 
 
 /** The Unit Test class for the [[CiPoliceValidator]] object.
@@ -70,7 +72,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidGroupId,
         constraint = "must be specified, and either be 'com.wix', or start with 'com.wix.'",
-        description = "groupId"))
+        legacyDescription = "groupId"))
     }
 
     "be rejected if missing, and no 'groupId' is specified in the 'parent'" in new Ctx {
@@ -81,7 +83,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = null,
         constraint = "is a null",
-        description = "groupId"))
+        legacyDescription = "groupId"))
     }
   }
 
@@ -101,7 +103,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = null,
         constraint = "is a null",
-        description = "artifactId"))
+        legacyDescription = "artifactId"))
     }
 
     "be rejected, if blank" in new Ctx {
@@ -111,7 +113,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = blank,
         constraint = "must not be blank",
-        description = "artifactId"))
+        legacyDescription = "artifactId"))
     }
   }
 
@@ -140,7 +142,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject, isRelease = false) must failWith(RuleViolationMatcher(
         value = Some(invalidVersion),
         constraint = "must be of the form X.X.X-SNAPSHOT for Development (RC) execution",
-        description = "effective version"))
+        legacyDescription = "effective version"))
     }
 
     "be rejected if missing 'version', and no 'version' is specified in the 'parent'" in new Ctx {
@@ -151,7 +153,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject, isRelease = false) must failWith(RuleViolationMatcher(
         value = None,
         constraint = "must be of the form X.X.X-SNAPSHOT for Development (RC) execution",
-        description = "effective version"))
+        legacyDescription = "effective version"))
     }
 
     "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}-SNAPSHOT'" in new Ctx {
@@ -163,7 +165,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject, isRelease = false) must failWith(RuleViolationMatcher(
         value = Some(invalidVersion),
         constraint = "must be of the form X.X.X-SNAPSHOT for Development (RC) execution",
-        description = "effective version"))
+        legacyDescription = "effective version"))
     }
   }
 
@@ -192,7 +194,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject, isRelease = true) must failWith(RuleViolationMatcher(
         value = Some(invalidVersion),
         constraint = "must be of the form X.X.X for Release execution",
-        description = "effective version"))
+        legacyDescription = "effective version"))
     }
 
     "be rejected if missing 'version', and no 'version' is specified in the 'parent'" in new Ctx {
@@ -203,7 +205,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject, isRelease = true) must failWith(RuleViolationMatcher(
         value = None,
         constraint = "must be of the form X.X.X for Release execution",
-        description = "effective version"))
+        legacyDescription = "effective version"))
     }
 
     "be rejected if missing, and the 'version' specified in the 'parent' does not satisfy the format of '{number}.{number}.{number}' in release execution" in new Ctx {
@@ -215,7 +217,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject, isRelease = true) must failWith(RuleViolationMatcher(
         value = Some(invalidVersion),
         constraint = "must be of the form X.X.X for Release execution",
-        description = "effective version"))
+        legacyDescription = "effective version"))
     }
   }
 
@@ -235,7 +237,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = null,
         constraint = "is a null",
-        description = "name"))
+        legacyDescription = "name"))
     }
 
     "be rejected if blank" in new Ctx {
@@ -245,7 +247,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = blank,
         constraint = "must not be blank",
-        description = "name"))
+        legacyDescription = "name"))
     }
   }
 
@@ -265,7 +267,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidUrl,
         constraint = "must be of format https://github.com/wix/{project}",
-        description = "project url"))
+        legacyDescription = "project url"))
     }
   }
 
@@ -285,7 +287,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = null,
         constraint = "is a null",
-        description = "description"))
+        legacyDescription = "description"))
     }
 
     "be rejected if blank" in new Ctx {
@@ -295,7 +297,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = blank,
         constraint = "must not be blank",
-        description = "description"))
+        legacyDescription = "description"))
     }
   }
 
@@ -320,7 +322,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = noOwners: JList[Developer],
         constraint = "owners email must be valid and at wix.com domain",
-        description = "developers"))
+        legacyDescription = "developers"))
     }
 
     "be rejected if the owner's email address is not at Wix domain" in new Ctx {
@@ -333,7 +335,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = ownerNonWixDomainAddress: JList[Developer],
         constraint = "owners email must be valid and at wix.com domain",
-        description = "developers"))
+        legacyDescription = "developers"))
     }
 
     "be rejected if the owner's email address is not valid" in new Ctx {
@@ -345,7 +347,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = ownerInvalidEmailAddress: JList[Developer],
         constraint = "owners email must be valid and at wix.com domain",
-        description = "developers"))
+        legacyDescription = "developers"))
     }
 
     "be rejected if missing" in new Ctx {
@@ -355,7 +357,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = Nil: JList[Developer],
         constraint = "owners email must be valid and at wix.com domain",
-        description = "developers"))
+        legacyDescription = "developers"))
     }
   }
 
@@ -383,7 +385,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = null,
         constraint = "SCM must not be null",
-        description = "scm"))
+        legacyDescription = "scm"))
     }
 
     "be rejected if 'url' is not of the format https://github.com/wix/{project}" in new Ctx {
@@ -393,7 +395,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidUrl,
         constraint = "must be of format https://github.com/wix/{project}",
-        description = "scm"))
+        legacyDescription = "scm.url"))
     }
 
     "be rejected if 'connection' is not of the format scm:git:git://github.com/wix/{project}.git" in new Ctx {
@@ -404,7 +406,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidConnection,
         constraint = "must be of the format of scm:git:git://github.com/wix/{project}.git",
-        description = "scm"))
+        legacyDescription = "scm.connection"))
     }
 
     "be rejected if 'developerConnection' is not of the format scm:git:git@github.com:wix/{project}.git" in new Ctx {
@@ -415,7 +417,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidDevConnection,
         constraint = "must be of the format of scm:git:git@github.com:wix/{project}.git",
-        description = "scm"))
+        legacyDescription = "scm.developerConnection"))
     }
 
     "be rejected if 'tag' is blank" in new Ctx {
@@ -425,7 +427,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = "",
         constraint = "must not be blank",
-        description = "scm"))
+        legacyDescription = "scm.tag"))
     }
   }
 
@@ -449,7 +451,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = null,
         constraint = "Issue Management must not be null",
-        description = "issueManagement"))
+        legacyDescription = "issueManagement"))
     }
 
     "be rejected if 'url' is not of the format https://github.com/wix/{project}/issues" in new Ctx {
@@ -460,7 +462,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidIssuesUrl,
         constraint = "must be of format https://github.com/wix/{project}/issues",
-        description = "issueManagement"))
+        legacyDescription = "issueManagement.url"))
     }
 
     "be rejected if 'system' is not GitHub Issues" in new Ctx {
@@ -471,7 +473,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidSystem,
         constraint = "does not equal GitHub Issues",
-        description = "issueManagement"))
+        legacyDescription = "issueManagement.system"))
     }
   }
 
@@ -516,7 +518,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = licensesRepresentation(Nil),
         constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
-        description = "licenses"))
+        legacyDescription = "licenses"))
     }
 
     "be rejected if 'name' is not [modified BSD License]" in new Ctx {
@@ -527,7 +529,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = licensesRepresentation(invalidLicense),
         constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
-        description = "licenses"))
+        legacyDescription = "licenses"))
     }
 
     "be rejected if 'url' is not of format [https://github.com/wix/{project}/blob/master/LICENSE.md]" in new Ctx {
@@ -538,7 +540,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = licensesRepresentation(invalidUrl),
         constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
-        description = "licenses"))
+        legacyDescription = "licenses"))
     }
 
     "be rejected if 'distribution' is not [repo]" in new Ctx {
@@ -549,7 +551,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = licensesRepresentation(invalidDistribution),
         constraint = "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
-        description = "licenses"))
+        legacyDescription = "licenses"))
     }
   }
 
@@ -573,7 +575,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = null,
         constraint = "is a null",
-        description = "organization"))
+        legacyDescription = "organization"))
     }
 
     "be rejected if 'name' is not wix.com" in new Ctx {
@@ -584,7 +586,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidName,
         constraint = "Organization name must be wix.com and url must be http://wix.io",
-        description = "organization"))
+        legacyDescription = "organization"))
     }
 
     "be rejected if 'url' is not http://wix.io" in new Ctx {
@@ -595,7 +597,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
       validate(mvnProject) must failWith(RuleViolationMatcher(
         value = invalidOrganizationUrl,
         constraint = "Organization name must be wix.com and url must be http://wix.io",
-        description = "organization"))
+        legacyDescription = "organization"))
     }
   }
 
@@ -616,7 +618,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
           RuleViolationMatcher(
             value = null,
             constraint = "LICENSE.md file is missing in project's root directory",
-            description = "LICENSE.md"))
+            legacyDescription = "LICENSE.md"))
     }
 
     "be rejected, if holds non-certified content" in new Ctx {
@@ -629,7 +631,7 @@ class CiPoliceValidatorTest extends SpecWithJUnit with ResultMatchers with JMock
           RuleViolationMatcher(
             value = Some(invalidLicenseMdContent),
             constraint = "is not the certified content of LICENSE.md file",
-            description = "LICENSE.md"))
+            legacyDescription = "LICENSE.md"))
     }
   }
 }

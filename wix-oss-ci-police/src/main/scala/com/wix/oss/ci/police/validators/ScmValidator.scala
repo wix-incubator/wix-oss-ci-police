@@ -7,11 +7,12 @@
 package com.wix.oss.ci.police.validators
 
 
+import com.wix.accord.Descriptions.Description
+import com.wix.accord.ViolationBuilder._
+import com.wix.accord.{Descriptions, NullSafeValidator, RuleViolation, Validator}
+import com.wix.oss.ci.police.validators.ScmValidator._
 import org.apache.maven.model.Scm
 import org.apache.maven.project.MavenProject
-import com.wix.accord.{NullSafeValidator, RuleViolation, Validator}
-import com.wix.accord.ViolationBuilder._
-import ScmValidator._
 
 
 /** A validator for Maven Project's `scm`. It validates that the `url`, `connection` and `developerConnection` are of
@@ -41,7 +42,7 @@ class ScmValidator extends NullSafeValidator[MavenProject] (
     .getOrElse(RuleViolation(
       null,
       "SCM must not be null",
-      Some("scm"))))
+      Descriptions.Explicit("scm"))))
 )
 
 
@@ -82,13 +83,13 @@ object ScmValidator {
     }
   }
 
-  def getViolationDescription(scm: Scm): Option[String] = {
+  def getViolationDescription(scm: Scm): Description = {
     scm match {
-      case BlankUrl() | HasInvalidUrl(_)                                 => Some("scm.url")
-      case BlankConnection() | HasInvalidConnection(_)                   => Some("scm.connection")
-      case BlankDeveloperConnection() | HasInvalidDeveloperConnection(_) => Some("scm.developerConnection")
-      case BlankTag()                                                    => Some("scm.tag")
-      case _                                                             => None
+      case BlankUrl() | HasInvalidUrl(_)                                 => Descriptions.Explicit("scm.url")
+      case BlankConnection() | HasInvalidConnection(_)                   => Descriptions.Explicit("scm.connection")
+      case BlankDeveloperConnection() | HasInvalidDeveloperConnection(_) => Descriptions.Explicit("scm.developerConnection")
+      case BlankTag()                                                    => Descriptions.Explicit("scm.tag")
+      case _                                                             => Descriptions.Explicit("")
     }
   }
 

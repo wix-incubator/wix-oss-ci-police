@@ -7,18 +7,19 @@
 package com.wix.oss.ci.police.maven.execution.listener
 
 
-import scala.collection.JavaConversions._
-import scala.collection.mutable
-import scala.tools.nsc.io.Path
-import scala.util.Try
 import java.nio.file.{Path => JPath}
+
+import com.wix.accord.{Descriptions, GroupViolation, RuleViolation, Violation}
+import com.wix.oss.ci.police.CiPoliceViolationException
+import com.wix.oss.ci.police.maven.execution.listener.ITLoggingExecutionEventListener.{maxProjectName, mb}
 import org.apache.maven.cli.CLIReportingUtils._
 import org.apache.maven.cli.event.ExecutionEventLogger
 import org.apache.maven.execution._
-import com.wix.accord.{GroupViolation, RuleViolation, Violation}
-import com.wix.oss.ci.police.CiPoliceViolationException
-import com.wix.oss.ci.police.handlers.Missing
-import ITLoggingExecutionEventListener.{maxProjectName, mb}
+
+import scala.collection.JavaConversions._
+import scala.collection.mutable
+import scala.reflect.io.Path
+import scala.util.Try
 
 
 
@@ -70,12 +71,7 @@ class ITLoggingExecutionEventListener(logFile: JPath)(implicit isRelease: Boolea
     }
 
     ciPoliceException.foreach(excpetion => excpetion.violations.foreach(v =>
-      log.appendAll(s"[ERROR] Validation error: ${v.description.get} ${
-        v.value match {
-          case Missing() => "is missing"
-          case e => s"[$e] (${v.constraint})"
-        }
-      }\n")))
+      log.appendAll(s"[ERROR] Validation error: $v\n")))
   }
 
   private def logReactorSummary(session: MavenSession): Unit = {
@@ -147,25 +143,21 @@ class ITLoggingExecutionEventListener(logFile: JPath)(implicit isRelease: Boolea
       val violationClass = violation.getClass
       val valueMember = violationClass.getMethod("value")
       val constraintMember = violationClass.getMethod("constraint")
-      val descriptionMember = violationClass.getMethod("description")
+      val pathMember = violationClass.getMethod("path")
       val childrenMemberOpt = Try(violationClass.getClass.getMethod("children")).toOption
 
       val value = valueMember.invoke(violation)
       val constraint = constraintMember.invoke(violation).asInstanceOf[String]
-      val descriptionOpt = descriptionMember.invoke(violation)
-      val isEmptyMethod = descriptionOpt.getClass.getMethod("isEmpty")
-      val isEmpty = isEmptyMethod.invoke(descriptionOpt).toString.toBoolean
-      val description = Option(if (isEmpty) {
-        null
-      } else {
-        val getMethod = descriptionOpt.getClass.getMethod("get")
-
-        getMethod.invoke(descriptionOpt).toString
-      })
+      val descriptionsSeq = pathMember.invoke(violation)
+      val descriptionsSizeMethod = descriptionsSeq.getClass.getMethod("size")
+      descriptionsSizeMethod.invoke(descriptionsSeq)
+      descriptionsSizeMethod.invoke(descriptionsSeq).toString
+      val descriptionsSize = descriptionsSizeMethod.invoke(descriptionsSeq).toString.toInt
+      val description = Descriptions.Path.empty // TODO Copy violations
       val children = childrenMemberOpt.map(child => castViolationsAcrossClassLoader(child.invoke(violation)))
 
       violationBuff += childrenMemberOpt.fold[Violation](RuleViolation(value, constraint, description)) { _ =>
-        GroupViolation(value, constraint, description, children.getOrElse(Set.empty[Violation]))
+        GroupViolation(value, constraint, children.getOrElse(Set.empty[Violation]), description)
       }
     }
 

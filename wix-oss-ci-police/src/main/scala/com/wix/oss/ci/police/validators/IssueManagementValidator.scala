@@ -21,8 +21,8 @@ import IssueManagementUrlValidator.validIssueManagementUrl
   */
 object IssueManagementValidator {
   implicit val issueManagementValidator = validator[IssueManagement] { issueManagement =>
-    issueManagement.getUrl as "issueManagement.url" is validIssueManagementUrl
-    issueManagement.getSystem as "issueManagement.system" is equalTo("GitHub Issues")
+    issueManagement.getUrl as "url" is validIssueManagementUrl
+    issueManagement.getSystem as "system" is equalTo("GitHub Issues")
   }
 
   val validIssueManagement: Validator[IssueManagement] = issueManagementValidator

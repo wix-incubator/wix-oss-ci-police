@@ -7,10 +7,9 @@
 package com.wix.oss.ci.police.validators
 
 
-import org.apache.maven.project.MavenProject
 import com.wix.accord.ViolationBuilder._
-import com.wix.accord.{Result, Success, Validator}
 import com.wix.accord.dsl._
+import com.wix.accord.{Result, Success, Validator}
 import com.wix.oss.ci.police.validators.GroupIdValidator.haveValidGroupId
 import com.wix.oss.ci.police.validators.IssueManagementValidator.validIssueManagement
 import com.wix.oss.ci.police.validators.LicenseMdContentValidator.haveLicenseMdFileWithCertifiedContent
@@ -21,6 +20,7 @@ import com.wix.oss.ci.police.validators.OwnersEmailValidator.haveValidWixDomainE
 import com.wix.oss.ci.police.validators.ProjectUrlValidator.haveValidProjectUrl
 import com.wix.oss.ci.police.validators.ScmValidator.haveValidScm
 import com.wix.oss.ci.police.validators.VersionValidator.haveValidVersion
+import org.apache.maven.project.MavenProject
 
 
 /** A validator for a Maven Project.
@@ -40,7 +40,8 @@ object CiPoliceValidator {
     mavenProject.getModel.getDevelopers as "developers" should haveValidWixDomainEmails
     nullSafe(
       mavenProject.getIssueManagement as "issueManagement" is validIssueManagement,
-      "Issue Management")
+      "Issue Management"
+    )
   }
 
   /** Special validator for Release execution only.
@@ -70,8 +71,8 @@ object CiPoliceValidator {
     commonValidator and validator[MavenProject] { mavenProject =>
       mavenProject as "effective version" should haveValidVersion(Version.Development)
       mavenProject as "project url" should haveValidProjectUrl
-      mavenProject as "scm" should haveValidScm
-      mavenProject as "licenses" should haveValidLicense
+      mavenProject should haveValidScm
+      mavenProject should haveValidLicense
       mavenProject as "LICENSE.md" should haveLicenseMdFileWithCertifiedContent(licenseMdResolver)
     }
   }

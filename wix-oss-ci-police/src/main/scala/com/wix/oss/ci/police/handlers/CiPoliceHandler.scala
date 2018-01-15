@@ -7,14 +7,16 @@
 package com.wix.oss.ci.police.handlers
 
 
-import scala.runtime.BoxedUnit
 import java.util.{Collection => JCollection}
-import org.apache.maven.plugin.MojoFailureException
-import org.apache.maven.plugin.logging.Log
-import org.apache.maven.project.MavenProject
+
 import com.wix.accord.{Failure, Success, _}
 import com.wix.oss.ci.police.CiPoliceViolationException
 import com.wix.oss.ci.police.validators.{CiPoliceValidator, LicenseMdContentProvider}
+import org.apache.maven.plugin.MojoFailureException
+import org.apache.maven.plugin.logging.Log
+import org.apache.maven.project.MavenProject
+
+import scala.runtime.BoxedUnit
 
 
 /** The handler of the Open Source Software CI Police Mojo.
@@ -42,17 +44,13 @@ class CiPoliceHandler(mavenProject: MavenProject,
 
         case Failure(violations) =>
           for (v <- violations)
-            yield log.error(s"Validation error: ${v.description.get} ${v.value match {
-              case Missing() => "is missing"
-              case e => s"[$e] (${v.constraint})"
-            }}")
+            yield log.error(s"Validation error: $v")
 
           throw CiPoliceViolationException(violations)
       }
     }
   }
 }
-
 
 /** An Extractor Object, used for indicating if a value is missing.
   *

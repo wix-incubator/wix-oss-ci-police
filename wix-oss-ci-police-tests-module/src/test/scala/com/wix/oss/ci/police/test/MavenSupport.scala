@@ -7,13 +7,15 @@
 package com.wix.oss.ci.police.test
 
 
-import scala.collection.JavaConversions._
 import java.nio.file.Path
 import java.util.Properties
+
 import org.apache.maven.Maven
 import org.apache.maven.cli.event.ExecutionEventLogger
 import org.apache.maven.execution._
 import org.codehaus.plexus.{DefaultContainerConfiguration, DefaultPlexusContainer, PlexusConstants}
+
+import scala.collection.JavaConversions._
 
 
 /** A support mixin trait for dealing with Maven.

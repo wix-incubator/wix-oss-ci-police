@@ -7,9 +7,9 @@
 package com.wix.oss.ci.police.validators
 
 
-import org.apache.maven.project.MavenProject
-import com.wix.accord.{NullSafeValidator, RuleViolation}
 import com.wix.accord.ViolationBuilder._
+import com.wix.accord.{NullSafeValidator, RuleViolation}
+import org.apache.maven.project.MavenProject
 
 
 /** A validator for Maven Project's `url`, to validate its format (`https://github.com/wix/''{project}''`).
@@ -24,8 +24,7 @@ class ProjectUrlValidator extends NullSafeValidator[MavenProject] (
   },
   mvnProject => RuleViolation(
     mvnProject.getUrl,
-    "must be of format https://github.com/wix/{project}",
-    None)
+    "must be of format https://github.com/wix/{project}")
 )
 
 

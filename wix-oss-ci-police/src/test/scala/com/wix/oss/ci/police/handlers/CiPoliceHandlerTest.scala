@@ -7,18 +7,20 @@
 package com.wix.oss.ci.police.handlers
 
 
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import java.io.{ByteArrayOutputStream, PrintStream}
+
+import com.wix.oss.ci.police.CiPoliceViolationException
+import com.wix.oss.ci.police.test.MavenElementsBuilder._
+import com.wix.oss.ci.police.validators.{LicenseMdContentProvider, LicenseMdContentValidator}
+import com.wixpress.common.specs2.JMock
 import org.apache.maven.plugin.logging.Log
 import org.apache.maven.project.MavenProject
 import org.specs2.matcher.{Expectable, Matcher}
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
-import com.wix.oss.ci.police.CiPoliceViolationException
-import com.wix.oss.ci.police.test.MavenElementsBuilder._
-import com.wix.oss.ci.police.validators.{LicenseMdContentProvider, LicenseMdContentValidator}
-import com.wixpress.common.specs2.JMock
+
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 
 /** The Unit-Test for the [[CiPoliceHandler]] class.
@@ -89,7 +91,7 @@ class CiPoliceHandlerTest extends SpecWithJUnit with JMock {
       new Matcher[Log] {
         def apply[L <: Log](l: Expectable[L]) = {
           result(
-            records.forall(record => errorBuffer.exists(_.matches(record))),
+            records.forall(record => errorBuffer.contains(record)),
             s"${l.description} error record(s) ['${records mkString ", "}] was (were) written",
             s"${l.description} error record(s) ['${records mkString ", "}] was (were) not written",
             l
@@ -122,8 +124,9 @@ class CiPoliceHandlerTest extends SpecWithJUnit with JMock {
           url = Some(invalidUrl)))
 
       handler.execute() must failWithErrors(
-        s"^Validation error: groupId \\[${regexEscape(invalidGroupId)}\\] \\(must be specified, and either be 'com\\.wix', or start with 'com\\.wix\\.'\\)$$",
-        s"^Validation error: project url \\[${regexEscape(invalidUrl)}\\] \\(must be of format https://github\\.com/wix/\\{project\\}\\)$$")
+        s"""Validation error: groupId with value "$invalidGroupId" must be specified, and either be 'com.wix', or start with 'com.wix.'""",
+        s"""Validation error: project url with value "$invalidUrl" must be of format https://github.com/wix/{project}"""
+      )
     }
   }
 }

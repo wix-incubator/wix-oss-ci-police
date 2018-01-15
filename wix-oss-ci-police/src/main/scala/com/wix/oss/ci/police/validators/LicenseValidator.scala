@@ -7,12 +7,13 @@
 package com.wix.oss.ci.police.validators
 
 
-import scala.collection.JavaConversions._
+import com.wix.accord.ViolationBuilder._
+import com.wix.accord.{Descriptions, NullSafeValidator, RuleViolation}
+import com.wix.oss.ci.police.validators.LicenseValidator._
 import org.apache.maven.model.License
 import org.apache.maven.project.MavenProject
-import com.wix.accord.{NullSafeValidator, RuleViolation}
-import com.wix.accord.ViolationBuilder._
-import LicenseValidator._
+
+import scala.collection.JavaConversions._
 
 
 /** A validator for Maven Project's `licenses`, to validate that holds a valid license.
@@ -36,7 +37,7 @@ class LicenseValidator extends NullSafeValidator[MavenProject] (
         .mkString(", ")
     }]",
     "must have a valid License (which 'name' is [modified BSD License], 'distribution' is [repo], and 'url' of format [https://github.com/wix/{project}/blob/master/LICENSE.md]",
-    Some("licenses"))
+    Descriptions.Explicit("licenses"))
 )
 
 

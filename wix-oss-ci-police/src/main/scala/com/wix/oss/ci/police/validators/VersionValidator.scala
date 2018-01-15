@@ -7,11 +7,12 @@
 package com.wix.oss.ci.police.validators
 
 
-import scala.annotation.tailrec
-import org.apache.maven.project.MavenProject
-import com.wix.accord.{NullSafeValidator, RuleViolation}
 import com.wix.accord.ViolationBuilder._
-import VersionValidator.effectiveVersion
+import com.wix.accord.{NullSafeValidator, RuleViolation}
+import com.wix.oss.ci.police.validators.VersionValidator.effectiveVersion
+import org.apache.maven.project.MavenProject
+
+import scala.annotation.tailrec
 
 
 /** A validator for Maven Project's `version`, to validate its format (`''X''.''X''.''X''-SNAPSHOT` for Development
@@ -25,8 +26,7 @@ class VersionValidator(version: Version) extends NullSafeValidator[MavenProject]
   mvnProject => effectiveVersion(mvnProject).exists(_.matches(version.validVersionRegex)),
   mvnProject => RuleViolation(
     effectiveVersion(mvnProject),
-    s"must be of the form ${version.validVersionFormat} for ${version.executionType} execution",
-    None)
+    s"must be of the form ${version.validVersionFormat} for ${version.executionType} execution")
 )
 
 
